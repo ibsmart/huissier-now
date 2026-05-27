@@ -1,0 +1,79 @@
+export type UserRole = 'client' | 'huissier' | 'agent' | 'admin'
+
+export type InterventionType = 'constat' | 'signification' | 'saisie' | 'autre'
+
+export type InterventionStatus =
+  | 'pending'
+  | 'accepted'
+  | 'en_route'
+  | 'arrived'
+  | 'done'
+  | 'expired'
+  | 'cancelled'
+
+export interface User {
+  id: string
+  role: UserRole
+  email: string
+  firstName: string
+  lastName: string
+  phone?: string
+  firmId?: string
+  firm?: HuissierFirm
+  agentProfile?: HuissierAgent
+}
+
+export interface HuissierFirm {
+  id: string
+  name: string
+  siret?: string
+  address?: string
+}
+
+export interface HuissierAgent {
+  id: string
+  firmId: string
+  firm?: HuissierFirm
+  user?: { firstName: string; lastName: string }
+  isAvailable: boolean
+  lat?: number
+  lng?: number
+  radiusKm: number
+  rating?: number
+}
+
+export interface Intervention {
+  id: string
+  clientId: string
+  client?: { firstName: string; lastName: string; phone?: string }
+  agentId?: string
+  agent?: HuissierAgent
+  firmId?: string
+  firm?: HuissierFirm
+  type: InterventionType
+  description: string
+  photoUrl?: string
+  status: InterventionStatus
+  clientLat: number
+  clientLng: number
+  clientAddress: string
+  etaMinutes?: number
+  distance_km?: number
+  createdAt: string
+  acceptedAt?: string
+  doneAt?: string
+}
+
+export interface InterventionDraft {
+  type?: InterventionType
+  description?: string
+  photoUrl?: string
+  lat?: number
+  lng?: number
+  address?: string
+}
+
+export interface AuthTokens {
+  accessToken: string
+  refreshToken: string
+}

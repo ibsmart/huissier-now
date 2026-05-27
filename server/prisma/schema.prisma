@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  client
+  huissier  // patron de l'étude
+  agent     // clerc / assistant qui se déplace
+  admin
+}
+
+enum InterventionType {
+  constat
+  signification
+  saisie
+  autre
+}
+
+enum InterventionStatus {
+  pending
+  accepted
+  en_route
+  arrived
+  done
+  expired
+  cancelled
+}
+
+// ─── Étude (cabinet du huissier) ───────────────────────────────────────────
+model HuissierFirm {
+  id        String   @id @default(uuid())
+  name      String                  // "Étude Dupont & Associés"
+  siret     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  huissiers User[]          @relation("FirmOwners")
+  agents    HuissierAgent[]
+  interventions Intervention[]
+}
+
+// ─── Utilisateur (client, huissier patron, agent) ──────────────────────────
+model User {
+  id           String    @id @default(uuid())
+  role         UserRole
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  createdAt    DateTime  @default(now())
+
+  // Huissier patron → appartient à une étude
+  firm   HuissierFirm? @relation("FirmOwners", fields: [firmId], references: [id])
+  firmId String?
+
+  // Agent → profil étendu
+  agentProfile      HuissierAgent?
+
+  // Relations interventions
+  clientInterventions Intervention[]    @relation("ClientInterventions")
+  interventionLogs    InterventionLog[]
+  ratings             Rating[]
+  pushSubscriptions   PushSubscription[]
+}
+
+// ─── Profil agent (clerc qui se déplace) ───────────────────────────────────
+model HuissierAgent {
+  id          String        @id               // = user.id
+  user        User          @relation(fields: [id], references: [id])
+  firm        HuissierFirm  @relation(fields: [firmId], references: [id])
+  firmId      String
+  lat         Float?
+  lng         Float?
+  isAvailable Boolean       @default(false)
+  radiusKm    Int           @default(20)
+  rating      Float?
+  updatedAt   DateTime      @updatedAt
+
+  interventions Intervention[] @relation("AgentInterventions")
+}
+
+// ─── Demande d'intervention ─────────────────────────────────────────────────
+model Intervention {
+  id            String             @id @default(uuid())
+
+  // Côté client
+  clientId      String
+  client        User               @relation("ClientInterventions", fields: [clientId], references: [id])
+
+  // Côté étude + agent
+  firmId        String?
+  firm          HuissierFirm?      @relation(fields: [firmId], references: [id])
+  agentId       String?
+  agent         HuissierAgent?     @relation("AgentInterventions", fields: [agentId], references: [id])
+
+  // Contenu
+  type          InterventionType
+  description   String
+  photoUrl      String?
+
+  // Statut
+  status        InterventionStatus @default(pending)
+
+  // Localisation client
+  clientLat     Float
+  clientLng     Float
+  clientAddress String
+
+  // ETA
+  etaMinutes    Int?
+
+  // Timestamps
+  createdAt     DateTime           @default(now())
+  acceptedAt    DateTime?
+  doneAt        DateTime?
+
+  logs    InterventionLog[]
+  ratings Rating[]
+}
+
+// ─── Journal des changements de statut ─────────────────────────────────────
+model InterventionLog {
+  id             String       @id @default(uuid())
+  interventionId String
+  intervention   Intervention @relation(fields: [interventionId], references: [id])
+  status         String
+  actorId        String
+  actor          User         @relation(fields: [actorId], references: [id])
+  agentLat       Float?
+  agentLng       Float?
+  etaMinutes     Int?
+  createdAt      DateTime     @default(now())
+}
+
+// ─── Abonnements push PWA ──────────────────────────────────────────────────
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
+// ─── Évaluations ───────────────────────────────────────────────────────────
+model Rating {
+  id             String       @id @default(uuid())
+  interventionId String
+  intervention   Intervention @relation(fields: [interventionId], references: [id])
+  fromClientId   String
+  fromClient     User         @relation(fields: [fromClientId], references: [id])
+  score          Int
+  comment        String?
+  createdAt      DateTime     @default(now())
+}

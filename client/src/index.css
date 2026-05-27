@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translate(-50%, -16px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Fix icônes Leaflet avec Vite */
+.leaflet-default-icon-path {
+  background-image: none;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    overscroll-behavior: none;
+  }
+}
+
+@layer components {
+  /* ── Bouton primaire — dégradé or ───────────────────────────
+     Pour une couleur unie, remplacer "background:" par
+     "background-color: theme('colors.primary.600');"          */
+  .btn-primary {
+    @apply w-full min-h-[56px] text-white font-semibold text-base
+           rounded-2xl px-6 py-4 transition-all
+           disabled:opacity-50 disabled:cursor-not-allowed
+           active:opacity-90 active:scale-[0.99];
+    background: linear-gradient(135deg, #C9A84C, #A07828);
+    box-shadow: 0 4px 20px rgba(201, 168, 76, 0.3);
+  }
+
+  .btn-secondary {
+    @apply w-full min-h-[56px] bg-white text-primary-600 font-semibold text-base
+           rounded-2xl px-6 py-4 border-2 border-primary-600
+           active:bg-primary-50 transition-colors;
+  }
+
+  .btn-danger {
+    @apply w-full min-h-[56px] bg-red-600 text-white font-semibold text-base
+           rounded-2xl px-6 py-4 active:bg-red-700 transition-colors;
+  }
+
+  .btn-success {
+    @apply w-full min-h-[56px] text-white font-semibold text-base
+           rounded-2xl px-6 py-4 transition-all
+           disabled:opacity-50 active:opacity-90;
+    background: linear-gradient(135deg, #10B981, #059669);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+  }
+
+  .screen {
+    @apply flex flex-col h-full overflow-y-auto;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4;
+  }
+
+  .input {
+    @apply w-full min-h-[56px] border-2 border-gray-200 rounded-xl px-4 py-3
+           text-base focus:border-primary-500 focus:outline-none transition-colors;
+  }
+
+  .textarea {
+    @apply w-full border-2 border-gray-200 rounded-xl px-4 py-3
+           text-base focus:border-primary-500 focus:outline-none transition-colors
+           resize-none;
+  }
+
+  /* ── Header dégradé (pages Mission, Tracking) ─────────────── */
+  .screen-header-gradient {
+    background: linear-gradient(135deg, #111111 0%, #2A1A00 50%, #A07828 100%);
+  }
+}

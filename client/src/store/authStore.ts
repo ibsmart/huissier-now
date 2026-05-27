@@ -1,0 +1,24 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import type { User, AuthTokens } from '../types'
+
+interface AuthStore {
+  user: User | null
+  tokens: AuthTokens | null
+  setAuth: (user: User, tokens: AuthTokens) => void
+  clearAuth: () => void
+  isAuthenticated: () => boolean
+}
+
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      tokens: null,
+      setAuth: (user, tokens) => set({ user, tokens }),
+      clearAuth: () => set({ user: null, tokens: null }),
+      isAuthenticated: () => !!get().tokens?.accessToken,
+    }),
+    { name: 'huissier-auth' }
+  )
+)

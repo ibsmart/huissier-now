@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HuissierNow — Maquettes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+
+  /* ══════════════════════════════════════════════════════════════
+     🎨 DESIGN TOKENS — modifier uniquement ce bloc pour changer
+        toute la palette de l'application
+  ══════════════════════════════════════════════════════════════ */
+  :root{
+    /* ── Couleur primaire ──────────────────────────────────────
+       Remplacer ces 7 lignes pour changer la couleur principale */
+    --p:          #C9A84C;   /* or vif (boutons, icônes actives)       */
+    --p-dark:     #A07828;   /* or foncé / texte sur fond clair        */
+    --p-darker:   #2A1A00;   /* brun nuit (dégradé hero fond)          */
+    --p-light:    #FAF6EC;   /* fond carte sélectionnée                */
+    --p-border:   #F0E0B0;   /* bordure légère                         */
+    --p-border2:  #DFC06A;   /* bordure plus visible                   */
+    --p-muted:    #D4B96A;   /* icône / label secondaire               */
+
+    /* ── Couleur secondaire (succès / agent) ──────────────────
+       Remplacer ces 4 lignes pour changer la couleur verte     */
+    --s:          #10B981;   /* vert vif (disponibilité, agent)        */
+    --s-dark:     #059669;   /* vert foncé                             */
+    --s-darker:   #047857;   /* très foncé                             */
+    --s-light:    #ECFDF5;   /* fond vert clair                        */
+    --s-border:   #D1FAE5;   /* bordure verte                          */
+
+    /* ── Dégradés (référencent --p et --s) ───────────────────── */
+    --grad-hero:   linear-gradient(160deg, #080808 0%, var(--p-darker) 45%, var(--p) 100%);
+    --grad-header: linear-gradient(135deg, #111111 0%, var(--p-darker) 50%, var(--p-dark) 100%);
+    --grad-btn:    linear-gradient(135deg, var(--p) 0%, var(--p-dark) 100%);
+    --grad-green:  linear-gradient(135deg, var(--s) 0%, var(--s-dark) 100%);
+    --grad-price:  linear-gradient(135deg, var(--s-light), var(--s-border));
+
+    /* ── Fond page (fond sombre autour des téléphones) ────────── */
+    --page-bg: linear-gradient(145deg, #080808 0%, #111111 60%, #0A0A0A 100%);
+
+    /* ── Cadre téléphone ──────────────────────────────────────── */
+    --phone-ring-inner: #1A1400;
+    --phone-ring-outer: #2E2200;
+    --phone-shadow: rgba(201,168,76,.25);
+    --phone-notch: #080808;
+
+    /* ── Neutres (ne pas changer) ─────────────────────────────── */
+    --gray-50: #F8FAFC;
+    --gray-100:#F1F5F9;
+    --gray-200:#E2E8F0;
+    --gray-300:#CBD5E1;
+    --gray-400:#94A3B8;
+    --gray-500:#64748B;
+    --gray-600:#475569;
+    --gray-700:#334155;
+    --gray-900:#0F172A;
+
+    /* ── Sémantique danger / warning ─────────────────────────── */
+    --danger:       #EF4444;
+    --danger-light: #FEF2F2;
+    --warning:      #F59E0B;
+    --warning-light:#FEF3C7;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     LAYOUT
+  ══════════════════════════════════════════════════════════════ */
+  body{font-family:'Inter',sans-serif;background:var(--page-bg);min-height:100vh;padding:40px 20px}
+
+  .gallery{display:flex;flex-wrap:wrap;gap:40px;justify-content:center;max-width:1600px;margin:0 auto}
+  .screen-wrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .screen-label{color:var(--p-muted);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+
+  /* ── Téléphone frame ──────────────────────────────────────── */
+  .phone{width:375px;height:812px;background:var(--gray-50);border-radius:44px;overflow:hidden;
+    position:relative;flex-shrink:0;
+    box-shadow:0 0 0 10px var(--phone-ring-inner),
+               0 0 0 12px var(--phone-ring-outer),
+               0 40px 80px var(--phone-shadow)}
+  .phone-inner{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+  .phone-inner::-webkit-scrollbar{display:none}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:120px;height:34px;background:var(--phone-notch);border-radius:0 0 20px 20px;z-index:100}
+
+  /* ══════════════════════════════════════════════════════════════
+     COMPOSANTS
+  ══════════════════════════════════════════════════════════════ */
+
+  /* ── Boutons ────────────────────────────────────────────────── */
+  .btn-primary{width:100%;height:56px;background:var(--grad-btn);color:white;
+    border:none;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    letter-spacing:-.01em;font-family:'Inter',sans-serif;
+    box-shadow:0 4px 20px rgba(249,115,22,.35);transition:all .15s}
+  .btn-primary:active{filter:brightness(.92);transform:scale(.99)}
+
+  .btn-secondary{width:100%;height:56px;background:white;color:var(--p);
+    border:2px solid var(--p);border-radius:16px;font-size:16px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+    font-family:'Inter',sans-serif}
+
+  .btn-ghost{width:100%;height:48px;background:transparent;color:var(--gray-500);
+    border:none;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif}
+
+  .btn-success{width:100%;height:56px;background:var(--grad-green);color:white;
+    border:none;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-family:'Inter',sans-serif;box-shadow:0 4px 16px rgba(16,185,129,.3)}
+
+  /* ── Input ──────────────────────────────────────────────────── */
+  .input{width:100%;height:56px;border:2px solid var(--gray-200);border-radius:12px;
+    padding:0 16px;font-size:16px;font-family:'Inter',sans-serif;
+    color:var(--gray-900);background:white;outline:none}
+  .input:focus{border-color:var(--p)}
+  .input::placeholder{color:var(--gray-400)}
+
+  /* ── Cards ──────────────────────────────────────────────────── */
+  .card{background:white;border-radius:20px;padding:16px;
+    box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--gray-200)}
+  .card-interactive{background:white;border-radius:20px;padding:16px;cursor:pointer;
+    box-shadow:0 2px 12px rgba(0,0,0,.06);border:2px solid var(--gray-200);transition:all .15s}
+  .card-interactive.selected{border-color:var(--p);background:var(--p-light)}
+  .card-interactive:active{transform:scale(.99)}
+
+  /* ── Badges ─────────────────────────────────────────────────── */
+  .badge{display:inline-flex;align-items:center;gap:4px;
+    padding:4px 10px;border-radius:100px;font-size:12px;font-weight:600}
+  .badge-pending{background:var(--warning-light);color:#92400E}
+  .badge-active{background:var(--p-border);color:var(--p-dark)}
+  .badge-done{background:var(--s-light);color:var(--s-darker)}
+
+  /* ── Sections ───────────────────────────────────────────────── */
+  .screen-header{padding:52px 24px 20px;background:white}
+  .back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--gray-500);
+    font-size:14px;font-weight:500;margin-bottom:20px;min-height:44px;cursor:pointer}
+  .action-bar{padding:16px 24px 32px;background:white;border-top:1px solid var(--gray-100)}
+  .section-label{font-size:11px;font-weight:700;color:var(--gray-400);
+    letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+
+  /* ── Stepper ────────────────────────────────────────────────── */
+  .stepper{display:flex;align-items:center}
+  .step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;z-index:1}
+  .step-dot.done{background:var(--grad-btn);color:white}
+  .step-dot.active{background:var(--p);color:white;box-shadow:0 0 0 4px var(--p-border)}
+  .step-dot.upcoming{background:var(--gray-200);color:var(--gray-500)}
+  .step-line{flex:1;height:3px;margin:0 -2px}
+  .step-line.done{background:var(--grad-btn)}
+  .step-line.upcoming{background:var(--gray-200)}
+
+  /* ── Radar ──────────────────────────────────────────────────── */
+  .radar-wrap{position:relative;width:140px;height:140px;
+    display:flex;align-items:center;justify-content:center}
+  .radar-ring{position:absolute;border-radius:50%;border:2px solid var(--p)}
+  .radar-ring-1{width:140px;height:140px;opacity:.12;animation:pulse-ring 2s ease infinite}
+  .radar-ring-2{width:110px;height:110px;opacity:.18;animation:pulse-ring 2s .4s ease infinite}
+  .radar-ring-3{width:80px;height:80px;opacity:.24;animation:pulse-ring 2s .8s ease infinite}
+  .radar-core{width:56px;height:56px;background:var(--grad-btn);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;z-index:1;
+    box-shadow:0 4px 24px rgba(249,115,22,.5)}
+
+  /* ── Map placeholder ────────────────────────────────────────── */
+  .map-placeholder{width:100%;height:180px;border-radius:16px;overflow:hidden;
+    background:linear-gradient(135deg,#e8eef8,#d8e8d8,#cce0cc);
+    position:relative}
+  .map-grid{position:absolute;inset:0;
+    background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.04) 0 1px,transparent 1px 40px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.04) 0 1px,transparent 1px 40px)}
+  .map-road-h{position:absolute;background:rgba(255,255,255,.7);height:6px;border-radius:3px}
+  .map-road-v{position:absolute;background:rgba(255,255,255,.7);width:6px;border-radius:3px}
+
+  /* ── Glassmorphism (onboarding) ─────────────────────────────── */
+  .glass-card{background:rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;
+    display:flex;align-items:center;gap:14px;
+    backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15)}
+
+  /* ── Price card ─────────────────────────────────────────────── */
+  .price-card{background:var(--grad-price);border:1px solid var(--s-border);
+    border-radius:16px;padding:14px}
+
+  /* ── Alert info ─────────────────────────────────────────────── */
+  .alert-info{background:var(--p-light);border:1px solid var(--p-border);
+    border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+
+  /* ── Stars ──────────────────────────────────────────────────── */
+  .stars{display:flex;gap:3px}
+  .star-filled{color:var(--warning);font-size:16px}
+  .star-empty{color:var(--gray-200);font-size:16px}
+
+  /* ══════════════════════════════════════════════════════════════
+     ANIMATIONS
+  ══════════════════════════════════════════════════════════════ */
+  @keyframes pulse-ring{0%{transform:scale(.8);opacity:.8}100%{transform:scale(1.8);opacity:0}}
+  @keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .animate-fade  {animation:fade-in .4s ease both}
+  .animate-fade-1{animation:fade-in .4s .1s  ease both;opacity:0}
+  .animate-fade-2{animation:fade-in .4s .2s  ease both;opacity:0}
+</style>
+</head>
+<body>
+
+<div style="text-align:center;margin-bottom:40px">
+  <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;
+    background:linear-gradient(135deg,var(--p-muted),var(--s));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">HuissierNow</div>
+  <div style="color:var(--p-dark);opacity:.6;font-size:14px;margin-top:6px">Maquettes UI · Mobile-first 375px · Design System v2</div>
+</div>
+
+<div class="gallery">
+
+<!-- ═══════════════════════════════════════════════
+     C1 — ONBOARDING
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">C1 — Onboarding</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--grad-hero)">
+      <div style="padding:60px 28px 0;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:500px;justify-content:center;gap:8px" class="animate-fade">
+        <div style="position:relative;margin-bottom:8px">
+          <div style="position:absolute;inset:-16px;background:radial-gradient(circle,rgba(249,115,22,.4),transparent 70%);border-radius:50%"></div>
+          <div style="width:80px;height:80px;background:rgba(255,255,255,.15);border-radius:24px;
+            display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);
+            border:1px solid rgba(255,255,255,.25);position:relative;animation:float 3s ease-in-out infinite">
+            <i data-lucide="scale" style="width:40px;height:40px;color:white;stroke-width:1.5"></i>
+          </div>
+        </div>
+        <div style="font-size:32px;font-weight:800;color:white;letter-spacing:-.03em;line-height:1.1">HuissierNow</div>
+        <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.6;max-width:260px;margin-top:4px">Un commissaire de justice disponible près de vous en quelques minutes</div>
+      </div>
+
+      <div style="padding:0 24px;margin-top:8px;display:flex;flex-direction:column;gap:10px" class="animate-fade-1">
+        <div class="glass-card">
+          <div style="width:36px;height:36px;background:rgba(249,115,22,.3);border-radius:10px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,.2)">
+            <i data-lucide="map-pin" style="width:18px;height:18px;color:white"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:white">Partagez votre position</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">GPS automatique ou adresse manuelle</div>
+          </div>
+        </div>
+        <div class="glass-card">
+          <div style="width:36px;height:36px;background:rgba(249,115,22,.3);border-radius:10px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,.2)">
+            <i data-lucide="file-text" style="width:18px;height:18px;color:white"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:white">Décrivez votre besoin</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">Type d'acte + situation en quelques mots</div>
+          </div>
+        </div>
+        <div class="glass-card">
+          <div style="width:36px;height:36px;background:rgba(5,150,105,.35);border-radius:10px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,.2)">
+            <i data-lucide="car" style="width:18px;height:18px;color:white"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:white">Un agent intervient</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">Suivi en temps réel jusqu'à l'arrivée</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:28px 24px 40px;display:flex;flex-direction:column;gap:12px" class="animate-fade-2">
+        <button class="btn-primary" style="background:white;color:var(--p-dark);box-shadow:0 4px 20px rgba(0,0,0,.25)">
+          <i data-lucide="zap" style="width:18px;height:18px"></i>
+          Lancer une demande
+        </button>
+        <button class="btn-ghost" style="color:rgba(255,255,255,.8)">Créer un compte</button>
+        <div style="height:1px;background:rgba(255,255,255,.1);margin:0 0 4px"></div>
+        <button class="btn-ghost" style="color:rgba(255,255,255,.45);font-size:13px">Espace professionnel →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     C2 — LOGIN CLIENT
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">C2 — Connexion</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div class="screen-header">
+        <div class="back-btn"><i data-lucide="arrow-left" style="width:18px;height:18px"></i> Retour</div>
+        <div style="width:52px;height:52px;background:var(--p-light);border-radius:16px;
+          display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+          box-shadow:0 4px 12px rgba(249,115,22,.15);border:1px solid var(--p-border)">
+          <i data-lucide="user" style="width:26px;height:26px;color:var(--p)"></i>
+        </div>
+        <div style="font-size:26px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Connexion</div>
+        <div style="font-size:15px;color:var(--gray-500);margin-top:4px;line-height:1.5">Connectez-vous pour lancer une demande</div>
+      </div>
+
+      <div style="padding:0 24px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--gray-700);margin-bottom:6px">Email</div>
+          <input class="input" type="email" placeholder="votre@email.com"/>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="font-size:14px;font-weight:600;color:var(--gray-700)">Mot de passe</div>
+            <div style="font-size:13px;color:var(--p);font-weight:500;cursor:pointer">Oublié ?</div>
+          </div>
+          <input class="input" type="password" placeholder="••••••••"/>
+        </div>
+        <div style="background:var(--danger-light);border:1.5px solid #FECACA;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+          <i data-lucide="alert-circle" style="width:16px;height:16px;color:var(--danger);flex-shrink:0"></i>
+          <span style="font-size:13px;color:var(--danger)">Email ou mot de passe incorrect</span>
+        </div>
+      </div>
+
+      <div class="action-bar" style="margin-top:24px">
+        <button class="btn-primary">Se connecter</button>
+        <div style="text-align:center;margin-top:16px;font-size:14px;color:var(--gray-500)">
+          Pas encore de compte ? <span style="color:var(--p);font-weight:600;cursor:pointer">Créer un compte</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     C4 — TYPE D'INTERVENTION
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">C4 — Type d'intervention</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div class="screen-header">
+        <div class="back-btn"><i data-lucide="arrow-left" style="width:18px;height:18px"></i> Retour</div>
+        <div style="font-size:26px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Type d'intervention</div>
+        <div style="font-size:15px;color:var(--gray-500);margin-top:4px">Sélectionnez le type d'acte requis</div>
+      </div>
+
+      <div style="padding:8px 24px;display:flex;flex-direction:column;gap:10px">
+        <div class="card-interactive selected">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;background:var(--p-border);border-radius:12px;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="clipboard-check" style="width:22px;height:22px;color:var(--p)"></i>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Constat</div>
+              <div style="font-size:13px;color:var(--gray-500);margin-top:2px;line-height:1.4">État des lieux, constat de dégâts, constat d'huissier</div>
+            </div>
+            <i data-lucide="check-circle-2" style="width:22px;height:22px;color:var(--p);flex-shrink:0"></i>
+          </div>
+        </div>
+
+        <div class="card-interactive">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;background:var(--warning-light);border-radius:12px;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="send" style="width:22px;height:22px;color:var(--warning)"></i>
+            </div>
+            <div>
+              <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Signification</div>
+              <div style="font-size:13px;color:var(--gray-500);margin-top:2px;line-height:1.4">Assignation, mise en demeure, actes judiciaires</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-interactive">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;background:var(--danger-light);border-radius:12px;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="lock" style="width:22px;height:22px;color:var(--danger)"></i>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Saisie</div>
+              <div style="font-size:13px;color:var(--gray-500);margin-top:2px;line-height:1.4">Saisie conservatoire, saisie-vente</div>
+            </div>
+            <div style="background:var(--warning-light);border-radius:8px;padding:3px 8px">
+              <span style="font-size:11px;font-weight:600;color:#92400E">Titre requis</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-interactive">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;background:var(--s-light);border-radius:12px;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="more-horizontal" style="width:22px;height:22px;color:var(--s-dark)"></i>
+            </div>
+            <div>
+              <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Autre demande</div>
+              <div style="font-size:13px;color:var(--gray-500);margin-top:2px;line-height:1.4">Consultation, conseil, autre acte</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar" style="margin-top:16px">
+        <button class="btn-primary">
+          Continuer
+          <i data-lucide="arrow-right" style="width:18px;height:18px"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     C7 — RÉCAPITULATIF
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">C7 — Récapitulatif</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div class="screen-header">
+        <div class="back-btn"><i data-lucide="arrow-left" style="width:18px;height:18px"></i> Retour</div>
+        <div style="font-size:26px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Récapitulatif</div>
+        <div style="font-size:15px;color:var(--gray-500);margin-top:4px">Vérifiez votre demande avant envoi</div>
+      </div>
+
+      <div style="padding:0 24px;display:flex;flex-direction:column;gap:10px">
+        <div class="card">
+          <div class="section-label">Type d'acte</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+            <div style="width:32px;height:32px;background:var(--p-light);border-radius:8px;
+              display:flex;align-items:center;justify-content:center">
+              <i data-lucide="clipboard-check" style="width:16px;height:16px;color:var(--p)"></i>
+            </div>
+            <span style="font-size:16px;font-weight:600;color:var(--gray-900)">Constat</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label">Description</div>
+          <div style="font-size:14px;color:var(--gray-700);line-height:1.6;margin-top:4px">Mon propriétaire a changé les serrures sans préavis. J'ai besoin d'un constat d'huissier en urgence.</div>
+        </div>
+
+        <div class="card">
+          <div class="section-label">Adresse d'intervention</div>
+          <div style="display:flex;align-items:flex-start;gap:10px;margin-top:4px">
+            <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--p);flex-shrink:0;margin-top:2px"></i>
+            <span style="font-size:14px;color:var(--gray-700);line-height:1.5">12 Rue de la Paix, 75001 Paris</span>
+          </div>
+        </div>
+
+        <div class="price-card">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--s-darker);letter-spacing:.06em;text-transform:uppercase">Tarif estimé</div>
+              <div style="font-size:22px;font-weight:800;color:var(--s-darker);margin-top:2px">150 – 300 €</div>
+              <div style="font-size:12px;color:var(--s-dark);margin-top:2px">Facturation après intervention · Devis exact sur place</div>
+            </div>
+            <i data-lucide="badge-euro" style="width:32px;height:32px;color:var(--s-dark);opacity:.5"></i>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:4px 0">
+          <div style="width:22px;height:22px;border-radius:6px;background:var(--grad-btn);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+            <i data-lucide="check" style="width:14px;height:14px;color:white;stroke-width:3"></i>
+          </div>
+          <div style="font-size:13px;color:var(--gray-500);line-height:1.5">
+            J'accepte les <span style="color:var(--p);font-weight:500">CGU</span> et la
+            <span style="color:var(--p);font-weight:500">politique de confidentialité</span> de HuissierNow
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar" style="margin-top:16px">
+        <button class="btn-primary">
+          <i data-lucide="send" style="width:18px;height:18px"></i>
+          Envoyer ma demande
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     C8 — RECHERCHE EN COURS
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">C8 — Recherche en cours</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:linear-gradient(180deg,var(--p-light) 0%,white 40%)">
+      <div style="height:60px"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:40px 32px;gap:36px">
+
+        <div class="radar-wrap">
+          <div class="radar-ring radar-ring-1"></div>
+          <div class="radar-ring radar-ring-2"></div>
+          <div class="radar-ring radar-ring-3"></div>
+          <div class="radar-core">
+            <i data-lucide="search" style="width:26px;height:26px;color:white;stroke-width:2.5"></i>
+          </div>
+        </div>
+
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Recherche en cours</div>
+          <div style="font-size:15px;color:var(--gray-500);margin-top:8px;line-height:1.5">Nous cherchons un agent disponible<br/>dans votre secteur…</div>
+        </div>
+
+        <div style="width:100%;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
+            background:var(--p-light);border-radius:12px;border:1px solid var(--p-border)">
+            <div style="width:22px;height:22px;background:var(--p);border-radius:50%;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="check" style="width:12px;height:12px;color:white;stroke-width:3"></i>
+            </div>
+            <span style="font-size:14px;font-weight:500;color:var(--p)">Demande envoyée</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
+            background:var(--p-light);border-radius:12px;border:1px solid var(--p-border)">
+            <div style="width:22px;height:22px;background:var(--p);border-radius:50%;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="check" style="width:12px;height:12px;color:white;stroke-width:3"></i>
+            </div>
+            <span style="font-size:14px;font-weight:500;color:var(--p)">Recherche d'agents proches</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
+            background:var(--gray-100);border-radius:12px">
+            <div style="width:22px;height:22px;border:2px solid var(--gray-300);border-radius:50%;
+              flex-shrink:0;border-top-color:var(--p);animation:spin 1s linear infinite"></div>
+            <span style="font-size:14px;font-weight:500;color:var(--gray-500)">En attente d'acceptation…</span>
+          </div>
+        </div>
+
+        <div style="text-align:center">
+          <div style="font-size:28px;font-weight:800;background:var(--grad-btn);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">2:47</div>
+          <div style="font-size:13px;color:var(--gray-400);margin-top:2px">Temps restant</div>
+        </div>
+      </div>
+
+      <div style="padding:0 24px 40px">
+        <button class="btn-ghost" style="color:var(--gray-400)">
+          <i data-lucide="x" style="width:16px;height:16px;display:inline;margin-right:6px"></i>
+          Annuler la demande
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     C9 — SUIVI TEMPS RÉEL
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">C9 — Suivi temps réel</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div style="background:var(--grad-header);padding:52px 24px 24px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div style="width:8px;height:8px;background:#6EE7B7;border-radius:50%;animation:pulse-ring 1.5s ease infinite"></div>
+              <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase">En route</span>
+            </div>
+            <div style="font-size:22px;font-weight:800;color:white;letter-spacing:-.02em;line-height:1.2">Agent en route<br/>vers vous</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:16px;padding:12px 16px;text-align:center;
+            backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2)">
+            <div style="font-size:36px;font-weight:800;color:white;line-height:1;letter-spacing:-.03em">12</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:600;margin-top:2px">min</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:20px 24px;background:white;border-bottom:1px solid var(--gray-100)">
+        <div class="stepper">
+          <div class="step-dot done"><i data-lucide="check" style="width:14px;height:14px;stroke-width:3"></i></div>
+          <div class="step-line done"></div>
+          <div class="step-dot active"><i data-lucide="car" style="width:14px;height:14px"></i></div>
+          <div class="step-line upcoming"></div>
+          <div class="step-dot upcoming">3</div>
+          <div class="step-line upcoming"></div>
+          <div class="step-dot upcoming">4</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <span style="font-size:10px;font-weight:600;color:var(--p)">Accepté</span>
+          <span style="font-size:10px;font-weight:600;color:var(--p)">En route</span>
+          <span style="font-size:10px;color:var(--gray-400)">Arrivé</span>
+          <span style="font-size:10px;color:var(--gray-400)">Terminé</span>
+        </div>
+      </div>
+
+      <div style="padding:16px 24px 0">
+        <div class="map-placeholder">
+          <div class="map-grid"></div>
+          <div class="map-road-h" style="top:40%;left:0;right:0"></div>
+          <div class="map-road-h" style="top:65%;left:0;right:0"></div>
+          <div class="map-road-v" style="left:30%;top:0;bottom:0"></div>
+          <div class="map-road-v" style="left:65%;top:0;bottom:0"></div>
+          <div style="position:absolute;left:60%;top:38%;transform:translate(-50%,-100%)">
+            <div style="width:36px;height:36px;background:var(--p);border-radius:50%;border:3px solid white;
+              display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(249,115,22,.5)">
+              <i data-lucide="map-pin" style="width:16px;height:16px;color:white;stroke-width:2.5"></i>
+            </div>
+          </div>
+          <div style="position:absolute;left:28%;top:62%;transform:translate(-50%,-50%)">
+            <div style="width:36px;height:36px;background:var(--s);border-radius:50%;border:3px solid white;
+              display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(16,185,129,.5)">
+              <i data-lucide="car" style="width:16px;height:16px;color:white;stroke-width:2.5"></i>
+            </div>
+          </div>
+          <div style="position:absolute;bottom:10px;right:10px;background:white;border-radius:10px;
+            padding:6px 10px;display:flex;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="width:10px;height:10px;background:var(--p);border-radius:50%"></div>
+              <span style="font-size:11px;color:var(--gray-600);font-weight:500">Vous</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="width:10px;height:10px;background:var(--s);border-radius:50%"></div>
+              <span style="font-size:11px;color:var(--gray-600);font-weight:500">Agent</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 24px 0">
+        <div class="card" style="display:flex;align-items:center;gap:14px">
+          <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--p-border),var(--p-border2));
+            display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="user" style="width:24px;height:24px;color:var(--p)"></i>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Sophie Martin</div>
+            <div style="font-size:13px;color:var(--gray-500);margin-top:2px">Étude Dupont & Associés</div>
+            <div class="stars" style="margin-top:4px">
+              <span class="star-filled">★</span><span class="star-filled">★</span>
+              <span class="star-filled">★</span><span class="star-filled">★</span>
+              <span class="star-empty">★</span>
+              <span style="font-size:12px;color:var(--gray-400);margin-left:4px;font-weight:500">4.2</span>
+            </div>
+          </div>
+          <button style="width:44px;height:44px;background:var(--s-light);border:1px solid var(--s-border);
+            border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <i data-lucide="phone" style="width:20px;height:20px;color:var(--s-dark)"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     H3 — DASHBOARD AGENT
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">H3 — Dashboard Agent</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div style="background:white;padding:52px 24px 16px;border-bottom:1px solid var(--gray-100)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Bonjour, Sophie</div>
+            <div style="font-size:13px;color:var(--gray-500);margin-top:2px;display:flex;align-items:center;gap:4px">
+              <i data-lucide="briefcase" style="width:13px;height:13px"></i> Étude Dupont & Associés
+            </div>
+          </div>
+          <div style="width:40px;height:40px;background:var(--p-light);border-radius:12px;
+            display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <i data-lucide="log-out" style="width:18px;height:18px;color:var(--p)"></i>
+          </div>
+        </div>
+
+        <div style="background:var(--grad-green);border-radius:16px;padding:16px;
+          display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(16,185,129,.3)">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:white">Je suis disponible</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:3px">Je reçois les nouvelles demandes</div>
+          </div>
+          <div style="width:56px;height:32px;background:rgba(255,255,255,.3);border-radius:100px;position:relative">
+            <div style="position:absolute;right:4px;top:4px;width:24px;height:24px;background:white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 24px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--gray-500)">3 demandes dans votre secteur</div>
+
+        <div class="card-interactive" style="border-left:3px solid var(--p)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:15px;font-weight:700;color:var(--gray-900)">Constat</span>
+              <span class="badge badge-pending">En attente</span>
+            </div>
+            <span style="font-size:12px;color:var(--gray-400)">il y a 2 min</span>
+          </div>
+          <div style="font-size:13px;color:var(--gray-600);line-height:1.5;margin-bottom:10px">Propriétaire a changé les serrures sans préavis. Besoin urgent d'un constat…</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:5px;color:var(--gray-500)">
+              <i data-lucide="map-pin" style="width:13px;height:13px"></i>
+              <span style="font-size:12px">Rue de la Paix, 75001</span>
+            </div>
+            <div style="background:var(--p-light);border-radius:8px;padding:3px 10px;border:1px solid var(--p-border)">
+              <span style="font-size:12px;font-weight:700;color:var(--p)">1.2 km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-interactive">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:15px;font-weight:700;color:var(--gray-900)">Signification</span>
+              <span class="badge badge-pending">En attente</span>
+            </div>
+            <span style="font-size:12px;color:var(--gray-400)">il y a 8 min</span>
+          </div>
+          <div style="font-size:13px;color:var(--gray-600);line-height:1.5;margin-bottom:10px">Signification d'acte de procédure dans le cadre d'un litige locatif…</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:5px;color:var(--gray-500)">
+              <i data-lucide="map-pin" style="width:13px;height:13px"></i>
+              <span style="font-size:12px">Av. des Champs-Élysées, 75008</span>
+            </div>
+            <div style="background:var(--warning-light);border-radius:8px;padding:3px 10px">
+              <span style="font-size:12px;font-weight:700;color:#92400E">4.7 km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     H5 — MISSION AGENT
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">H5 — Mission Agent</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div style="background:var(--grad-header);padding:52px 24px 20px">
+        <div class="back-btn" style="color:rgba(255,255,255,.7)">
+          <i data-lucide="arrow-left" style="width:18px;height:18px"></i> Retour
+        </div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase">Mission en cours</span>
+            <div style="font-size:22px;font-weight:800;color:white;letter-spacing:-.02em;margin-top:4px">Constat</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:8px 14px;text-align:center;border:1px solid rgba(255,255,255,.2)">
+            <div style="font-size:24px;font-weight:800;color:white;letter-spacing:-.02em">12</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:600">min ETA</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 24px 0">
+        <div class="map-placeholder">
+          <div class="map-grid"></div>
+          <div class="map-road-h" style="top:50%;left:0;right:0"></div>
+          <div class="map-road-v" style="left:40%;top:0;bottom:0"></div>
+          <div style="position:absolute;left:60%;top:45%;transform:translate(-50%,-50%)">
+            <div style="width:36px;height:36px;background:var(--p);border-radius:50%;border:3px solid white;
+              display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(249,115,22,.5)">
+              <i data-lucide="map-pin" style="width:16px;height:16px;color:white;stroke-width:2.5"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:12px 24px;display:flex;flex-direction:column;gap:10px">
+        <div class="card">
+          <div class="section-label">Client</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+            <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Jean Dupont</div>
+            <a href="tel:+33600000000" style="height:44px;background:var(--s-light);border:1px solid var(--s-border);
+              border-radius:12px;padding:0 16px;display:flex;align-items:center;gap:6px;text-decoration:none">
+              <i data-lucide="phone" style="width:16px;height:16px;color:var(--s-dark)"></i>
+              <span style="font-size:13px;font-weight:600;color:var(--s-dark)">Appeler</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label">Adresse</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:6px;gap:12px">
+            <div style="font-size:14px;color:var(--gray-700);line-height:1.5">12 Rue de la Paix, 75001 Paris</div>
+            <a href="#" style="height:36px;background:var(--p-light);border:1px solid var(--p-border);
+              border-radius:10px;padding:0 12px;display:flex;align-items:center;gap:4px;
+              text-decoration:none;white-space:nowrap;flex-shrink:0">
+              <i data-lucide="navigation" style="width:14px;height:14px;color:var(--p)"></i>
+              <span style="font-size:12px;font-weight:600;color:var(--p)">GPS</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn-success">
+          <i data-lucide="map-pin" style="width:18px;height:18px"></i>
+          Je suis arrivé
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     H6 — GESTION AGENTS
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">H6 — Gestion des agents</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--gray-50)">
+      <div class="screen-header">
+        <div class="back-btn"><i data-lucide="arrow-left" style="width:18px;height:18px"></i> Retour</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:26px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Mes agents</div>
+            <div style="font-size:14px;color:var(--gray-500);margin-top:3px">3 collaborateurs</div>
+          </div>
+          <button class="btn-primary" style="width:auto;height:44px;padding:0 18px;font-size:14px;gap:6px">
+            <i data-lucide="plus" style="width:16px;height:16px"></i>
+            Ajouter
+          </button>
+        </div>
+      </div>
+
+      <div style="padding:8px 24px;display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;border-radius:50%;
+            background:linear-gradient(135deg,var(--p-border),var(--p-border2));
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            font-size:18px;font-weight:700;color:var(--p)">SM</div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--gray-900)">Sophie Martin</div>
+            <div style="font-size:12px;color:var(--gray-500);margin-top:1px">sophie@etude-dupont.fr</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="display:inline-flex;align-items:center;gap:4px;background:var(--s-light);
+              border-radius:8px;padding:3px 8px;margin-bottom:4px">
+              <div style="width:6px;height:6px;background:var(--s);border-radius:50%"></div>
+              <span style="font-size:11px;font-weight:600;color:var(--s-darker)">Dispo</span>
+            </div>
+            <div style="font-size:11px;color:var(--gray-400)">20 km</div>
+          </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--gray-100);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            font-size:18px;font-weight:700;color:var(--gray-400)">PD</div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--gray-900)">Pierre Durand</div>
+            <div style="font-size:12px;color:var(--gray-500);margin-top:1px">pierre@etude-dupont.fr</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="display:inline-flex;align-items:center;gap:4px;background:var(--gray-100);
+              border-radius:8px;padding:3px 8px;margin-bottom:4px">
+              <div style="width:6px;height:6px;background:var(--gray-400);border-radius:50%"></div>
+              <span style="font-size:11px;font-weight:600;color:var(--gray-500)">Off</span>
+            </div>
+            <div style="font-size:11px;color:var(--gray-400)">15 km</div>
+          </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;gap:14px;border-left:3px solid var(--p)">
+          <div style="width:48px;height:48px;border-radius:50%;
+            background:linear-gradient(135deg,var(--p-light),var(--p-border));
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            font-size:18px;font-weight:700;color:var(--p)">LR</div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--gray-900)">Lucie Richard</div>
+            <div style="font-size:12px;color:var(--gray-500);margin-top:1px">lucie@etude-dupont.fr</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="display:inline-flex;align-items:center;gap:4px;background:var(--p-border);
+              border-radius:8px;padding:3px 8px;margin-bottom:4px">
+              <div style="width:6px;height:6px;background:var(--p);border-radius:50%;animation:pulse-ring 1.5s ease infinite"></div>
+              <span style="font-size:11px;font-weight:600;color:var(--p-dark)">Mission</span>
+            </div>
+            <div style="font-size:11px;color:var(--gray-400)">25 km</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     H7 — AJOUT AGENT (BOTTOM SHEET)
+════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">H7 — Ajout agent</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:rgba(124,45,18,.5);backdrop-filter:blur(2px)">
+      <div style="height:120px"></div>
+      <div style="background:white;border-radius:28px 28px 0 0;padding:8px 24px 40px;min-height:700px">
+        <div style="width:36px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 20px"></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div style="font-size:20px;font-weight:800;color:var(--gray-900);letter-spacing:-.02em">Nouvel agent</div>
+          <button style="width:32px;height:32px;background:var(--gray-100);border:none;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <i data-lucide="x" style="width:16px;height:16px;color:var(--gray-500)"></i>
+          </button>
+        </div>
+
+        <div class="alert-info" style="margin-bottom:20px">
+          <i data-lucide="info" style="width:16px;height:16px;color:var(--p);flex-shrink:0;margin-top:1px"></i>
+          <p style="font-size:13px;color:var(--p-dark);line-height:1.5">L'agent recevra ses identifiants pour se connecter sur l'espace professionnel.</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px">Prénom *</div>
+              <input class="input" placeholder="Marie" style="height:48px"/>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px">Nom *</div>
+              <input class="input" placeholder="Curie" style="height:48px"/>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px">Email *</div>
+            <input class="input" type="email" placeholder="marie@etude.fr" style="height:48px"/>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px">Mot de passe provisoire *</div>
+            <input class="input" placeholder="8 caractères minimum" style="height:48px;font-family:monospace"/>
+          </div>
+
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:8px">Rayon d'intervention</div>
+            <div style="display:flex;align-items:center;border:2px solid var(--p-border);border-radius:12px;overflow:hidden">
+              <button style="width:48px;height:48px;background:var(--p-light);border:none;
+                color:var(--gray-500);cursor:pointer;display:flex;align-items:center;justify-content:center">
+                <i data-lucide="minus" style="width:18px;height:18px"></i>
+              </button>
+              <div style="flex:1;text-align:center;font-size:18px;font-weight:700;color:var(--gray-900)">20 km</div>
+              <button style="width:48px;height:48px;background:var(--p-light);border:none;
+                color:var(--p);cursor:pointer;display:flex;align-items:center;justify-content:center">
+                <i data-lucide="plus" style="width:18px;height:18px"></i>
+              </button>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+              <span style="font-size:11px;color:var(--gray-400);background:var(--gray-100);padding:2px 8px;border-radius:6px;cursor:pointer">5 km</span>
+              <span style="font-size:11px;color:var(--gray-400);background:var(--gray-100);padding:2px 8px;border-radius:6px;cursor:pointer">10 km</span>
+              <span style="font-size:11px;color:white;background:var(--grad-btn);padding:2px 8px;border-radius:6px;font-weight:600">25 km</span>
+              <span style="font-size:11px;color:var(--gray-400);background:var(--gray-100);padding:2px 8px;border-radius:6px;cursor:pointer">50 km</span>
+            </div>
+          </div>
+
+          <button class="btn-primary" style="margin-top:4px">
+            <i data-lucide="user-plus" style="width:18px;height:18px"></i>
+            Créer le compte agent
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /gallery -->
+
+<div style="text-align:center;margin-top:60px;padding-bottom:60px;font-size:13px">
+  <div style="color:var(--p-muted)">HuissierNow · Design System v2 · 9 écrans · Mobile 375px</div>
+  <div style="margin-top:8px;opacity:.5;color:var(--p-muted)">Icônes : Lucide · Typo : Inter · Palette centralisée dans :root</div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
