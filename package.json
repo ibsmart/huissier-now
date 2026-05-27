@@ -8,9 +8,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
-    "build": "pnpm --filter client build && pnpm --filter server build",
+    "build": "npm run build -w client && npm run build -w server",
     "start": "node server/dist/index.js",
-    "install:all": "pnpm install",
     "postinstall": "cd server && npx prisma generate"
   },
   "devDependencies": {
