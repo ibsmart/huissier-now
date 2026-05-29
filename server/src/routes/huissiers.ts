@@ -1,10 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth'
 import { getIO } from '../socket'
+import prisma from '../lib/prisma'
 
 const router: import('express').Router = Router()
-const prisma = new PrismaClient()
 
 // ── Disponibilité de l'agent ────────────────────────────────────────────────
 router.patch('/me/availability', requireAuth, requireRole('agent'), async (req: AuthRequest, res) => {

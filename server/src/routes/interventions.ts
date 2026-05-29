@@ -1,13 +1,12 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { PrismaClient } from '@prisma/client'
 import webPush from 'web-push'
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth'
 import { estimateETA } from '../services/eta'
 import { getIO } from '../socket'
+import prisma from '../lib/prisma'
 
 const router: import('express').Router = Router()
-const prisma = new PrismaClient()
 
 const CreateSchema = z.object({
   type:          z.enum(['constat', 'signification', 'saisie', 'autre']),
