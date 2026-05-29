@@ -9,6 +9,7 @@ interface DraftStore {
   setPhotos: (photos: string[]) => void
   setAudio: (audioBase64: string | undefined) => void
   setLocation: (lat: number, lng: number, address: string) => void
+  setUrgency: (urgency: string, scheduledAt?: string, surcharge?: number) => void
   reset: () => void
 }
 
@@ -21,5 +22,7 @@ export const useDraftStore = create<DraftStore>((set) => ({
   setAudio: (audioBase64) => set((s) => ({ draft: { ...s.draft, audioBase64 } })),
   setLocation: (lat, lng, address) =>
     set((s) => ({ draft: { ...s.draft, lat, lng, address } })),
+  setUrgency: (urgency, scheduledAt, surcharge) =>
+    set((s) => ({ draft: { ...s.draft, urgency, scheduledAt, surcharge: surcharge ?? 0 } })),
   reset: () => set({ draft: {} }),
 }))

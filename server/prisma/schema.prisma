@@ -72,16 +72,19 @@ model User {
 
 // ─── Profil agent (clerc qui se déplace) ───────────────────────────────────
 model HuissierAgent {
-  id          String        @id               // = user.id
-  user        User          @relation(fields: [id], references: [id])
-  firm        HuissierFirm  @relation(fields: [firmId], references: [id])
-  firmId      String
-  lat         Float?
-  lng         Float?
-  isAvailable Boolean       @default(false)
-  radiusKm    Int           @default(20)
-  rating      Float?
-  updatedAt   DateTime      @updatedAt
+  id                String        @id               // = user.id
+  user              User          @relation(fields: [id], references: [id])
+  firm              HuissierFirm  @relation(fields: [firmId], references: [id])
+  firmId            String
+  lat               Float?
+  lng               Float?
+  isAvailable       Boolean       @default(false)
+  radiusKm          Int           @default(20)
+  rating            Float?
+  acceptsExpress    Boolean       @default(true)
+  acceptsTomorrow   Boolean       @default(true)
+  acceptsScheduled  Boolean       @default(true)
+  updatedAt         DateTime      @updatedAt
 
   interventions Intervention[] @relation("AgentInterventions")
 }
@@ -106,6 +109,11 @@ model Intervention {
   description   String
   photos        String[]
   audioBase64   String?
+
+  // Urgence
+  urgency       String             @default("express") // "express" | "tomorrow" | "scheduled"
+  scheduledAt   DateTime?
+  surcharge     Int                @default(0)         // 0, 20, or 30
 
   // Statut
   status        InterventionStatus @default(pending)

@@ -99,21 +99,31 @@ export default function DashboardPage() {
 
         {/* Toggle disponibilité — agents seulement */}
         {isAgent && (
-          <div className="card flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-gray-900">Ma disponibilité</div>
-              <div className={`text-sm ${available ? 'text-green-600' : 'text-gray-400'}`}>
-                {available ? '🟢 Disponible — je vois les demandes' : '⚫ Hors service'}
+          <div className="space-y-2">
+            <div className="card flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-gray-900">Ma disponibilité</div>
+                <div className={`text-sm ${available ? 'text-green-600' : 'text-gray-400'}`}>
+                  {available ? '🟢 Disponible — je vois les demandes' : '⚫ Hors service'}
+                </div>
               </div>
+              <button
+                onClick={toggleAvailable}
+                className={`w-14 h-8 rounded-full transition-colors flex items-center
+                  ${available ? 'bg-green-500' : 'bg-gray-300'}`}
+              >
+                <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform mx-1
+                  ${available ? 'translate-x-6' : 'translate-x-0'}`}
+                />
+              </button>
             </div>
             <button
-              onClick={toggleAvailable}
-              className={`w-14 h-8 rounded-full transition-colors flex items-center
-                ${available ? 'bg-green-500' : 'bg-gray-300'}`}
+              onClick={() => navigate('/huissier/settings')}
+              className="card w-full flex items-center gap-2 active:bg-gray-50"
             >
-              <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform mx-1
-                ${available ? 'translate-x-6' : 'translate-x-0'}`}
-              />
+              <span className="text-xl">⚙️</span>
+              <span className="font-semibold text-gray-800 text-sm">Paramètres</span>
+              <span className="ml-auto text-gray-400">→</span>
             </button>
           </div>
         )}

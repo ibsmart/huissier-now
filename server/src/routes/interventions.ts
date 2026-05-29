@@ -18,6 +18,9 @@ const CreateSchema = z.object({
   clientLat:     z.number(),
   clientLng:     z.number(),
   clientAddress: z.string().min(5),
+  urgency:       z.enum(['express', 'tomorrow', 'scheduled']).optional().default('express'),
+  scheduledAt:   z.string().datetime().optional().nullable(),
+  surcharge:     z.number().int().min(0).max(100).optional().default(0),
 })
 
 // ── Notifier le client via push + socket ────────────────────────────────────
@@ -62,25 +65,28 @@ router.post('/', requireAuth, requireRole('client'), async (req: AuthRequest, re
     })
     if (active) return res.status(409).json({ message: 'Vous avez déjà une intervention en cours', id: active.id })
 
-    const { subType, photos, audioBase64, ...rest } = parsed.data
+    const { subType, photos, audioBase64, scheduledAt, ...rest } = parsed.data
     const intervention = await prisma.intervention.create({
       data: {
         ...rest,
         clientId:    req.userId!,
-        subType:     subType    ?? null,
-        photos:      photos     ?? [],
+        subType:     subType     ?? null,
+        photos:      photos      ?? [],
         audioBase64: audioBase64 ?? null,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       },
     })
 
-    // Expiration automatique après 3 minutes
-    setTimeout(async () => {
-      const updated = await prisma.intervention.updateMany({
-        where: { id: intervention.id, status: 'pending' },
-        data:  { status: 'expired' },
-      })
-      if (updated.count > 0) notifyClient(req.userId!, intervention.id, 'expired')
-    }, 3 * 60 * 1000)
+    // Expiration automatique après 3 minutes — uniquement pour Express
+    if (parsed.data.urgency === 'express') {
+      setTimeout(async () => {
+        const updated = await prisma.intervention.updateMany({
+          where: { id: intervention.id, status: 'pending' },
+          data:  { status: 'expired' },
+        })
+        if (updated.count > 0) notifyClient(req.userId!, intervention.id, 'expired')
+      }, 3 * 60 * 1000)
+    }
 
     return res.status(201).json(intervention)
   } catch (err: any) {

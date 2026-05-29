@@ -40,6 +40,9 @@ export interface HuissierAgent {
   lng?: number
   radiusKm: number
   rating?: number
+  acceptsExpress?: boolean
+  acceptsTomorrow?: boolean
+  acceptsScheduled?: boolean
 }
 
 export interface Intervention {
@@ -61,6 +64,9 @@ export interface Intervention {
   clientAddress: string
   etaMinutes?: number
   distance_km?: number
+  urgency?: string
+  scheduledAt?: string
+  surcharge?: number
   createdAt: string
   acceptedAt?: string
   doneAt?: string
@@ -75,6 +81,9 @@ export interface InterventionDraft {
   lat?: number
   lng?: number
   address?: string
+  urgency?: string
+  scheduledAt?: string
+  surcharge?: number
 }
 
 export interface AuthTokens {

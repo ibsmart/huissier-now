@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDraftStore } from '../../store/draftStore'
 import { compressImage, blobToBase64 } from '../../utils/imageUtils'
+import { useT } from '../../i18n'
+import LangToggle from '../../components/LangToggle'
 
 type Mode = 'text' | 'audio'
 
@@ -11,6 +13,7 @@ const MAX_RECORD_SEC = 120   // 2 minutes max
 export default function DescribePage() {
   const navigate = useNavigate()
   const { draft, setDescription, setPhotos, setAudio } = useDraftStore()
+  const t = useT()
 
   /* ── Mode text / audio ──────────────────────────────────────── */
   const [mode, setMode] = useState<Mode>('text')
@@ -61,7 +64,6 @@ export default function DescribePage() {
       recorder.start(200)
       setIsRecording(true)
 
-      // timer
       timerRef.current = setInterval(() => {
         setAudioSeconds(s => {
           if (s + 1 >= MAX_RECORD_SEC) stopRecording()
@@ -119,7 +121,6 @@ export default function DescribePage() {
     if (mode === 'text' && !hasText) return
     if (mode === 'audio' && !hasAudio) return
 
-    // Description : texte saisi ou fallback audio
     const finalDesc = text.trim() || 'Enregistrement audio joint à la demande.'
     setDescription(finalDesc)
     navigate('/request/location')
@@ -133,12 +134,13 @@ export default function DescribePage() {
   return (
     <div className="screen">
       {/* Header */}
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-12 pb-4 relative">
+        <LangToggle className="absolute top-4 right-4" />
         <button onClick={() => navigate(-1)} className="text-gray-500 mb-6 flex items-center gap-2 min-h-[44px]">
-          ← Retour
+          {t('back')}
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Décrivez la situation</h1>
-        <p className="text-gray-500 mt-1">Soyez précis pour aider l'huissier à intervenir efficacement.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('describe_title')}</h1>
+        <p className="text-gray-500 mt-1">{t('describe_subtitle')}</p>
       </div>
 
       <div className="px-6 flex-1 flex flex-col gap-5 overflow-y-auto pb-4">
@@ -155,7 +157,7 @@ export default function DescribePage() {
                   : 'text-gray-500'
               }`}
             >
-              {m === 'text' ? '✏️ Texte' : '🎤 Audio'}
+              {m === 'text' ? t('describe_text_mode') : t('describe_audio_mode')}
             </button>
           ))}
         </div>
@@ -165,7 +167,7 @@ export default function DescribePage() {
           <div className="flex flex-col gap-1">
             <textarea
               className="textarea h-44"
-              placeholder="Ex : Mon propriétaire a changé les serrures sans préavis. J'ai besoin d'un constat d'huissier pour constater l'impossibilité d'accès..."
+              placeholder={t('describe_placeholder')}
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={1000}
@@ -191,14 +193,13 @@ export default function DescribePage() {
                     onClick={startRecording}
                     className="btn-primary w-auto px-8"
                   >
-                    ● Démarrer l'enregistrement
+                    {t('describe_record_btn')}
                   </button>
                 </>
               )}
 
               {isRecording && (
                 <>
-                  {/* Animation d'enregistrement */}
                   <div className="relative w-20 h-20 flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-red-100 animate-ping opacity-60" />
                     <div className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center text-white text-3xl z-10">
@@ -213,7 +214,7 @@ export default function DescribePage() {
                     onClick={stopRecording}
                     className="bg-red-600 text-white rounded-2xl py-4 px-8 font-bold text-base min-h-[56px] w-full"
                   >
-                    ■ Arrêter l'enregistrement
+                    {t('describe_stop_btn')}
                   </button>
                 </>
               )}
@@ -231,7 +232,7 @@ export default function DescribePage() {
                     onClick={resetAudio}
                     className="text-sm text-red-500 underline"
                   >
-                    Recommencer l'enregistrement
+                    {t('describe_reset_audio')}
                   </button>
                 </>
               )}
@@ -240,11 +241,11 @@ export default function DescribePage() {
             {/* Précisions textuelles optionnelles en mode audio */}
             <div>
               <p className="text-sm text-gray-600 font-medium mb-2">
-                Précisions supplémentaires <span className="text-gray-400 font-normal">(optionnel)</span>
+                {t('describe_optional_text')} <span className="text-gray-400 font-normal">(optionnel)</span>
               </p>
               <textarea
                 className="textarea h-24"
-                placeholder="Ajoutez des détails par écrit si nécessaire..."
+                placeholder={t('describe_optional_placeholder')}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 maxLength={500}
@@ -258,10 +259,10 @@ export default function DescribePage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="font-semibold text-gray-900 flex items-center gap-2">
-                📸 Photos
+                {t('describe_photos')}
                 <span className="text-xs text-gray-400 font-normal">({photos.length}/{MAX_PHOTOS})</span>
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">Optionnel, mais fortement recommandé</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('describe_photos_subtitle')}</p>
             </div>
           </div>
 
@@ -269,8 +270,7 @@ export default function DescribePage() {
           <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
             <span className="text-amber-500 text-lg shrink-0">⚠️</span>
             <p className="text-xs text-amber-800 leading-relaxed">
-              <strong>Les photos peuvent être déterminantes</strong> pour votre dossier.
-              Photographiez les dégâts, documents, lieux ou tout élément utile à l'intervention.
+              {t('describe_photos_warning')}
             </p>
           </div>
 
@@ -303,7 +303,7 @@ export default function DescribePage() {
               ) : (
                 <>
                   <span className="text-xl">+</span>
-                  Ajouter {photos.length > 0 ? 'une autre photo' : 'une photo'}
+                  {photos.length > 0 ? t('describe_add_more') : t('describe_add_photo')}
                 </>
               )}
             </button>
@@ -327,7 +327,7 @@ export default function DescribePage() {
           onClick={handleNext}
           disabled={!canContinue}
         >
-          Continuer →
+          {t('continue')}
         </button>
         {mode === 'text' && text.trim().length > 0 && text.trim().length < 3 && (
           <p className="text-xs text-center text-gray-400 mt-2">Minimum 3 caractères</p>

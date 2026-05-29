@@ -1,29 +1,39 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDraftStore } from '../../store/draftStore'
+import { useT } from '../../i18n'
+import LangToggle from '../../components/LangToggle'
 import type { InterventionType } from '../../types'
 
-const MAIN_TYPES: { value: InterventionType; label: string; description: string; icon: string }[] = [
-  { value: 'constat',       label: 'Constat',        description: "Constat d'huissier, état des lieux, sinistre, numérique…", icon: '📋' },
-  { value: 'signification', label: 'Signification',  description: "Signification d'actes, assignation, mise en demeure",      icon: '📨' },
-  { value: 'saisie',        label: 'Saisie',         description: 'Saisie mobilière, saisie-vente, saisie conservatoire',     icon: '🔒' },
-  { value: 'autre',         label: 'Autre',          description: 'Autre type de demande ou besoin spécifique',               icon: '❓' },
+const MAIN_TYPE_VALUES: { value: InterventionType; icon: string; labelKey: 'type_constat' | 'type_signification' | 'type_saisie' | 'type_autre'; descKey: 'type_constat_desc' | 'type_signification_desc' | 'type_saisie_desc' | 'type_autre_desc' }[] = [
+  { value: 'constat',       icon: '📋', labelKey: 'type_constat',       descKey: 'type_constat_desc'       },
+  { value: 'signification', icon: '📨', labelKey: 'type_signification', descKey: 'type_signification_desc' },
+  { value: 'saisie',        icon: '🔒', labelKey: 'type_saisie',        descKey: 'type_saisie_desc'        },
+  { value: 'autre',         icon: '❓', labelKey: 'type_autre',         descKey: 'type_autre_desc'         },
 ]
 
-const CONSTAT_SUBTYPES = [
-  { value: 'etat_lieux',   label: 'État des lieux',      icon: '🏠', description: 'Entrée / sortie locataire' },
-  { value: 'degats',       label: 'Dégâts / Sinistre',   icon: '💧', description: 'Dégâts des eaux, incendie, catastrophe' },
-  { value: 'nuisances',    label: 'Nuisances',            icon: '🔊', description: 'Sonores, olfactives, trouble de voisinage' },
-  { value: 'travaux',      label: 'Travaux / Dommages',  icon: '🏗️', description: 'Malfaçon, dommages causés par voisin' },
-  { value: 'numerique',    label: 'Numérique',            icon: '💻', description: 'Internet, réseaux sociaux, email' },
-  { value: 'accident',     label: 'Accident',             icon: '🚗', description: 'Voirie, véhicule, dommage corporel' },
-  { value: 'livraison',    label: 'Livraison',            icon: '📦', description: 'Colis endommagé, mauvaise livraison' },
-  { value: 'autre_constat',label: 'Autre constat',        icon: '📋', description: 'Autre type de constat d\'huissier' },
+type SubtypeKey = {
+  value: string
+  icon: string
+  labelKey: 'sub_etat_lieux' | 'sub_degats' | 'sub_nuisances' | 'sub_travaux' | 'sub_numerique' | 'sub_accident' | 'sub_livraison' | 'sub_autre_constat'
+  descKey: 'sub_etat_lieux_desc' | 'sub_degats_desc' | 'sub_nuisances_desc' | 'sub_travaux_desc' | 'sub_numerique_desc' | 'sub_accident_desc' | 'sub_livraison_desc' | 'sub_autre_constat_desc'
+}
+
+const CONSTAT_SUBTYPES: SubtypeKey[] = [
+  { value: 'etat_lieux',    icon: '🏠', labelKey: 'sub_etat_lieux',    descKey: 'sub_etat_lieux_desc'    },
+  { value: 'degats',        icon: '💧', labelKey: 'sub_degats',        descKey: 'sub_degats_desc'        },
+  { value: 'nuisances',     icon: '🔊', labelKey: 'sub_nuisances',     descKey: 'sub_nuisances_desc'     },
+  { value: 'travaux',       icon: '🏗️', labelKey: 'sub_travaux',       descKey: 'sub_travaux_desc'       },
+  { value: 'numerique',     icon: '💻', labelKey: 'sub_numerique',     descKey: 'sub_numerique_desc'     },
+  { value: 'accident',      icon: '🚗', labelKey: 'sub_accident',      descKey: 'sub_accident_desc'      },
+  { value: 'livraison',     icon: '📦', labelKey: 'sub_livraison',     descKey: 'sub_livraison_desc'     },
+  { value: 'autre_constat', icon: '📋', labelKey: 'sub_autre_constat', descKey: 'sub_autre_constat_desc' },
 ]
 
 export default function InterventionTypePage() {
   const navigate = useNavigate()
   const { draft, setType, setSubType } = useDraftStore()
+  const t = useT()
   const [selectedType, setSelectedType] = useState<InterventionType | null>(draft.type ?? null)
   const [selectedSub, setSelectedSub]   = useState<string | null>(draft.subType ?? null)
 
@@ -45,16 +55,17 @@ export default function InterventionTypePage() {
 
   return (
     <div className="screen">
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-12 pb-4 relative">
+        <LangToggle className="absolute top-4 right-4" />
         <button onClick={() => navigate(-1)} className="text-gray-500 mb-6 flex items-center gap-2 min-h-[44px]">
-          ← Retour
+          {t('back')}
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Type d'intervention</h1>
-        <p className="text-gray-500 mt-1">Quel type d'intervention souhaitez-vous ?</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('type_title')}</h1>
+        <p className="text-gray-500 mt-1">{t('type_subtitle')}</p>
       </div>
 
       <div className="px-6 pb-4 space-y-3 flex-1 overflow-y-auto">
-        {MAIN_TYPES.map((type) => (
+        {MAIN_TYPE_VALUES.map((type) => (
           <button
             key={type.value}
             onClick={() => handleTypeClick(type.value)}
@@ -65,8 +76,8 @@ export default function InterventionTypePage() {
           >
             <span className="text-3xl shrink-0">{type.icon}</span>
             <div>
-              <div className="font-semibold text-gray-900">{type.label}</div>
-              <div className="text-xs text-gray-500 mt-0.5 leading-tight">{type.description}</div>
+              <div className="font-semibold text-gray-900">{t(type.labelKey)}</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">{t(type.descKey)}</div>
             </div>
             {selectedType === type.value && type.value !== 'constat' && (
               <span className="ml-auto text-primary-500 text-lg">✓</span>
@@ -79,7 +90,7 @@ export default function InterventionTypePage() {
           <div className="mt-2 animate-in slide-in-from-top-2 duration-200">
             <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <span className="w-5 h-5 bg-primary-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
-              Quel type de constat ?
+              {t('subtype_question')}
             </p>
             <div className="grid grid-cols-2 gap-2">
               {CONSTAT_SUBTYPES.map((sub) => (
@@ -92,8 +103,8 @@ export default function InterventionTypePage() {
                       : 'border border-gray-200'}`}
                 >
                   <span className="text-2xl">{sub.icon}</span>
-                  <span className="font-semibold text-gray-900 text-sm leading-tight">{sub.label}</span>
-                  <span className="text-xs text-gray-400 leading-tight">{sub.description}</span>
+                  <span className="font-semibold text-gray-900 text-sm leading-tight">{t(sub.labelKey)}</span>
+                  <span className="text-xs text-gray-400 leading-tight">{t(sub.descKey)}</span>
                 </button>
               ))}
             </div>
@@ -109,7 +120,7 @@ export default function InterventionTypePage() {
             onClick={handleContinue}
             disabled={!selectedSub}
           >
-            Continuer →
+            {t('continue')}
           </button>
         </div>
       )}
