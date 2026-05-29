@@ -1,7 +1,7 @@
 {
   "installCommand": "pnpm install --no-frozen-lockfile",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://YOUR-RAILWAY-URL.railway.app/api/:path*" },
+    { "source": "/api/:path*", "destination": "http://141.94.194.103/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

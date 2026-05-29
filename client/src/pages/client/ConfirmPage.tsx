@@ -1,25 +1,65 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDraftStore } from '../../store/draftStore'
 import { useAuthStore } from '../../store/authStore'
-import { apiFetch } from '../../api/client'
+import { apiFetch, ApiError } from '../../api/client'
+import { useT } from '../../i18n'
+import LangToggle from '../../components/LangToggle'
+import type { Intervention } from '../../types'
 
 const TYPE_LABELS: Record<string, string> = {
-  constat: 'Constat',
-  signification: 'Signification',
-  saisie: 'Saisie',
-  autre: 'Autre',
+  constat: 'Constat', signification: 'Signification', saisie: 'Saisie', autre: 'Autre',
+}
+
+const SUBTYPE_LABELS: Record<string, string> = {
+  etat_lieux:    'État des lieux',
+  degats:        'Dégâts / Sinistre',
+  nuisances:     'Nuisances',
+  travaux:       'Travaux / Dommages',
+  numerique:     'Numérique',
+  accident:      'Accident',
+  livraison:     'Livraison',
+  autre_constat: 'Autre constat',
+}
+
+const URGENCY_ICONS: Record<string, string> = {
+  express:   '⚡',
+  tomorrow:  '📅',
+  scheduled: '🗓️',
 }
 
 export default function ConfirmPage() {
   const navigate = useNavigate()
   const { draft, reset } = useDraftStore()
   const { tokens } = useAuthStore()
+  const t = useT()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [existingId, setExistingId] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+  // Guard synchrone anti-double-clic (setLoading est async, pas suffisant seul)
+  const submittingRef = useRef(false)
+
+  // Vérification proactive au chargement : demande déjà active ?
+  useEffect(() => {
+    apiFetch('/api/interventions/mine', {
+      headers: { Authorization: `Bearer ${tokens?.accessToken}` },
+    })
+      .then((data: Intervention[]) => {
+        if (!Array.isArray(data)) return
+        const active = data.find((i) =>
+          ['pending', 'accepted', 'en_route', 'arrived'].includes(i.status),
+        )
+        if (active) setExistingId(active.id)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit() {
     if (!draft.type || !draft.description || !draft.address) return
+    // Guard synchrone : bloque un double-clic avant que React re-render
+    if (submittingRef.current) return
+    submittingRef.current = true
     setLoading(true)
     setError('')
     try {
@@ -30,51 +70,207 @@ export default function ConfirmPage() {
           Authorization: `Bearer ${tokens?.accessToken}`,
         },
         body: JSON.stringify({
-          type: draft.type,
-          description: draft.description,
-          clientLat: draft.lat ?? 0,
-          clientLng: draft.lng ?? 0,
+          type:          draft.type,
+          subType:       draft.subType ?? null,
+          description:   draft.description,
+          photos:        draft.photos    ?? [],
+          audioBase64:   draft.audioBase64 ?? null,
+          clientLat:     draft.lat ?? 0,
+          clientLng:     draft.lng ?? 0,
           clientAddress: draft.address,
+          urgency:       draft.urgency    ?? 'express',
+          scheduledAt:   draft.scheduledAt ?? null,
+          surcharge:     draft.surcharge  ?? 0,
         }),
       })
       reset()
       navigate(`/request/searching?id=${res.id}`)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur lors de l\'envoi')
+      if (e instanceof ApiError && e.status === 409 && e.data?.id) {
+        setExistingId(e.data.id)
+      } else {
+        setError(e instanceof Error ? e.message : "Erreur lors de l'envoi")
+      }
     } finally {
+      submittingRef.current = false
       setLoading(false)
+    }
+  }
+
+  async function handleCancelAndRetry() {
+    if (!existingId) return
+    setCancelling(true)
+    try {
+      await apiFetch(`/api/interventions/${existingId}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokens?.accessToken}` },
+      })
+      setExistingId(null)
+      setError('')
+      await handleSubmit()
+    } catch {
+      setError("Impossible d'annuler la demande précédente.")
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const hasPhotos = (draft.photos?.length ?? 0) > 0
+  const hasAudio  = !!draft.audioBase64
+  const urgency   = draft.urgency ?? 'express'
+  const surcharge = draft.surcharge ?? 0
+
+  function formatScheduledAt(iso?: string): string {
+    if (!iso) return '—'
+    try {
+      return new Date(iso).toLocaleString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+      })
+    } catch {
+      return iso
     }
   }
 
   return (
     <div className="screen">
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-12 pb-4 relative">
+        <LangToggle className="absolute top-4 right-4" />
         <button onClick={() => navigate(-1)} className="text-gray-500 mb-6 flex items-center gap-2 min-h-[44px]">
-          ← Retour
+          {t('back')}
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Récapitulatif</h1>
-        <p className="text-gray-500 mt-1">Vérifiez votre demande avant de l'envoyer.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('confirm_title')}</h1>
+        <p className="text-gray-500 mt-1">{t('confirm_subtitle')}</p>
       </div>
 
-      <div className="px-6 flex-1 space-y-4">
+      <div className="px-6 flex-1 space-y-4 overflow-y-auto pb-4">
+        {/* Type */}
         <div className="card">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Type</div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+            {t('confirm_type')}
+          </div>
           <div className="font-semibold text-gray-900">{TYPE_LABELS[draft.type ?? ''] ?? '—'}</div>
+          {draft.subType && (
+            <div className="text-sm text-primary-600 mt-0.5 font-medium">
+              └ {SUBTYPE_LABELS[draft.subType] ?? draft.subType}
+            </div>
+          )}
         </div>
+
+        {/* Description */}
         <div className="card">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Description</div>
-          <div className="text-gray-700 text-sm leading-relaxed">{draft.description ?? '—'}</div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+            {t('confirm_description')}
+          </div>
+          {hasAudio && (
+            <div className="flex items-center gap-2 text-sm text-primary-600 font-medium mb-2">
+              {t('confirm_audio_joined')}
+            </div>
+          )}
+          <div className="text-gray-700 text-sm leading-relaxed">
+            {draft.description === 'Enregistrement audio joint à la demande.'
+              ? <span className="text-gray-400 italic">Aucun texte ajouté</span>
+              : draft.description ?? '—'
+            }
+          </div>
         </div>
+
+        {/* Photos */}
+        {hasPhotos && (
+          <div className="card">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              {t('confirm_photos')} ({draft.photos!.length})
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {draft.photos!.map((src, i) => (
+                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+                  <img src={src} alt={`photo ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Adresse */}
         <div className="card">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Adresse</div>
-          <div className="text-gray-700 text-sm leading-relaxed">{draft.address ?? '—'}</div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+            {t('confirm_address')}
+          </div>
+          <div className="text-gray-700 text-sm leading-relaxed">
+            📍 {draft.address ?? '—'}
+          </div>
         </div>
-        {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+
+        {/* Urgence */}
+        <div className="card">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            {t('confirm_urgency')}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{URGENCY_ICONS[urgency] ?? '⚡'}</span>
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
+                {urgency === 'express'   && t('urgency_express')}
+                {urgency === 'tomorrow'  && t('urgency_tomorrow')}
+                {urgency === 'scheduled' && t('urgency_scheduled')}
+                {surcharge > 0 ? (
+                  <span className="bg-orange-100 text-orange-700 rounded-full px-2 py-0.5 text-xs font-bold">
+                    +{surcharge}% {t('confirm_surcharge')}
+                  </span>
+                ) : (
+                  <span className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-bold">
+                    {t('confirm_no_surcharge')}
+                  </span>
+                )}
+              </div>
+              {draft.scheduledAt && (
+                <div className="text-sm text-gray-500 mt-0.5">
+                  {t('confirm_scheduled_at')} : {formatScheduledAt(draft.scheduledAt)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Demande déjà en cours (409) */}
+        {existingId && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="font-semibold text-amber-800 text-sm">Vous avez déjà une demande en cours</p>
+                <p className="text-amber-600 text-xs mt-0.5">
+                  Vous devez d'abord gérer votre demande active avant d'en créer une nouvelle.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 py-3 bg-primary-600 text-white rounded-xl text-sm font-semibold active:opacity-80"
+                onClick={() => navigate(`/request/searching?id=${existingId}`)}
+              >
+                Voir ma demande
+              </button>
+              <button
+                className="flex-1 py-3 border border-red-300 text-red-600 rounded-xl text-sm font-semibold active:opacity-80 disabled:opacity-50"
+                disabled={cancelling}
+                onClick={handleCancelAndRetry}
+              >
+                {cancelling ? 'Annulation…' : 'Annuler et recréer'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-red-600 text-sm text-center">{error}</p>
+          </div>
+        )}
       </div>
 
       <div className="px-6 pb-10 pt-4">
         <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Envoi en cours...' : 'Envoyer ma demande'}
+          {loading ? t('confirm_sending') : t('confirm_send')}
         </button>
       </div>
     </div>

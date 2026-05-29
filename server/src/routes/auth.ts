@@ -2,11 +2,10 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { PrismaClient } from '@prisma/client'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import prisma from '../lib/prisma'
 
 const router: import('express').Router = Router()
-const prisma = new PrismaClient()
 
 const RegisterClientSchema = z.object({
   role: z.literal('client'),

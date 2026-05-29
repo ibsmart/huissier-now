@@ -14,6 +14,10 @@ import { initServer } from './socket'
 dotenv.config()
 
 const app = express()
+// Faire confiance au proxy Vercel/Nginx pour récupérer la vraie IP client
+// dans X-Forwarded-For (sinon tous les utilisateurs partagent l'IP du proxy)
+app.set('trust proxy', 1)
+
 const PORT = process.env.PORT ?? 3000
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -43,8 +47,21 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
-app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { message: 'Trop de tentatives, réessayez dans 15 minutes' } }))
-app.use('/api/interventions', rateLimit({ windowMs: 60 * 1000, max: 60 }))
+// Uniquement sur les endpoints non-authentifiés (login, register, refresh).
+// Les routes /interventions et /huissiers sont protégées par JWT — le
+// rate-limiting par IP y est contre-productif derrière un proxy multi-couche
+// (Vercel → Hostinger nginx → Node.js : tous les clients partageraient la
+// même IP interne). La protection contre le spam y est assurée par :
+//   • JWT obligatoire (401 si absent/expiré)
+//   • Contrainte DB 409 (1 seule intervention active par client)
+//   • Guard useRef anti-double-clic côté client
+app.use('/api/auth', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,           // 50 tentatives / 15 min — couvre login + refresh naturels
+  message: { message: 'Trop de tentatives, réessayez dans 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+}))
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes)

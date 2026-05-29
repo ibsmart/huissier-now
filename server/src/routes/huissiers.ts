@@ -1,10 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth'
 import { getIO } from '../socket'
+import prisma from '../lib/prisma'
 
 const router: import('express').Router = Router()
-const prisma = new PrismaClient()
 
 // ── Disponibilité de l'agent ────────────────────────────────────────────────
 router.patch('/me/availability', requireAuth, requireRole('agent'), async (req: AuthRequest, res) => {
@@ -20,6 +19,27 @@ router.patch('/me/availability', requireAuth, requireRole('agent'), async (req: 
     include: { firm: true },
   })
   return res.json(agent)
+})
+
+// ── Paramètres de l'agent (types acceptés + rayon) ──────────────────────────
+router.patch('/me/settings', requireAuth, requireRole('agent'), async (req: AuthRequest, res) => {
+  try {
+    const { acceptsExpress, acceptsTomorrow, acceptsScheduled, radiusKm } = req.body
+    const agent = await prisma.huissierAgent.update({
+      where: { id: req.userId! },
+      data: {
+        ...(acceptsExpress   !== undefined && { acceptsExpress:   Boolean(acceptsExpress)   }),
+        ...(acceptsTomorrow  !== undefined && { acceptsTomorrow:  Boolean(acceptsTomorrow)  }),
+        ...(acceptsScheduled !== undefined && { acceptsScheduled: Boolean(acceptsScheduled) }),
+        ...(radiusKm         !== undefined && { radiusKm:         Number(radiusKm)          }),
+      },
+      include: { firm: true },
+    })
+    return res.json(agent)
+  } catch (err: any) {
+    console.error('PATCH /huissiers/me/settings error:', err)
+    return res.status(500).json({ message: err.message ?? 'Erreur serveur' })
+  }
 })
 
 // ── Position de l'agent (toutes les 30s en mission) ─────────────────────────

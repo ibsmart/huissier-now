@@ -48,14 +48,14 @@ export default function LocationPage() {
   function handleConfirm() {
     if (!coords) return
     setLocation(coords.lat, coords.lng, address)
-    navigate('/request/confirm')
+    navigate('/request/urgency')
   }
 
   function handleManualSubmit() {
     if (!manualAddress.trim()) return
     // Coordonnées approximatives via Nominatim forward geocoding
     setLocation(0, 0, manualAddress.trim())
-    navigate('/request/confirm')
+    navigate('/request/urgency')
   }
 
   return (

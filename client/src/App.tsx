@@ -11,6 +11,7 @@ import InterventionTypePage from './pages/client/InterventionTypePage'
 import DescribePage from './pages/client/DescribePage'
 import LocationPage from './pages/client/LocationPage'
 import ConfirmPage from './pages/client/ConfirmPage'
+import UrgencyPage from './pages/client/UrgencyPage'
 import SearchingPage from './pages/client/SearchingPage'
 import TrackingPage from './pages/client/TrackingPage'
 import PaymentPage from './pages/client/PaymentPage'
@@ -28,6 +29,7 @@ import DashboardPage from './pages/huissier/DashboardPage'
 import MissionPage from './pages/huissier/MissionPage'
 import ManageAgentsPage from './pages/huissier/ManageAgentsPage'
 import StatsPage from './pages/huissier/StatsPage'
+import SettingsPage from './pages/huissier/SettingsPage'
 
 export default function App() {
   return (
@@ -45,6 +47,7 @@ export default function App() {
         <Route path="/request/type" element={<PrivateRoute role="client"><InterventionTypePage /></PrivateRoute>} />
         <Route path="/request/describe" element={<PrivateRoute role="client"><DescribePage /></PrivateRoute>} />
         <Route path="/request/location" element={<PrivateRoute role="client"><LocationPage /></PrivateRoute>} />
+        <Route path="/request/urgency" element={<PrivateRoute role="client"><UrgencyPage /></PrivateRoute>} />
         <Route path="/request/confirm" element={<PrivateRoute role="client"><ConfirmPage /></PrivateRoute>} />
         <Route path="/request/searching" element={<PrivateRoute role="client"><SearchingPage /></PrivateRoute>} />
         <Route path="/tracking/:id" element={<PrivateRoute role="client"><TrackingPage /></PrivateRoute>} />
@@ -65,6 +68,9 @@ export default function App() {
         } />
         <Route path="/huissier/stats" element={
           <PrivateRoute role="huissier"><StatsPage /></PrivateRoute>
+        } />
+        <Route path="/huissier/settings" element={
+          <PrivateRoute role="agent"><SettingsPage /></PrivateRoute>
         } />
 
         <Route path="*" element={<Navigate to="/" replace />} />

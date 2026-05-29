@@ -40,6 +40,9 @@ export interface HuissierAgent {
   lng?: number
   radiusKm: number
   rating?: number
+  acceptsExpress?: boolean
+  acceptsTomorrow?: boolean
+  acceptsScheduled?: boolean
 }
 
 export interface Intervention {
@@ -51,14 +54,19 @@ export interface Intervention {
   firmId?: string
   firm?: HuissierFirm
   type: InterventionType
+  subType?: string
   description: string
-  photoUrl?: string
+  photos?: string[]
+  audioBase64?: string
   status: InterventionStatus
   clientLat: number
   clientLng: number
   clientAddress: string
   etaMinutes?: number
   distance_km?: number
+  urgency?: string
+  scheduledAt?: string
+  surcharge?: number
   createdAt: string
   acceptedAt?: string
   doneAt?: string
@@ -66,11 +74,16 @@ export interface Intervention {
 
 export interface InterventionDraft {
   type?: InterventionType
+  subType?: string
   description?: string
-  photoUrl?: string
+  photos?: string[]       // base64 data URLs
+  audioBase64?: string    // base64 audio
   lat?: number
   lng?: number
   address?: string
+  urgency?: string
+  scheduledAt?: string
+  surcharge?: number
 }
 
 export interface AuthTokens {

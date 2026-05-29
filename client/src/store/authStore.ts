@@ -6,6 +6,7 @@ interface AuthStore {
   user: User | null
   tokens: AuthTokens | null
   setAuth: (user: User, tokens: AuthTokens) => void
+  setTokens: (tokens: AuthTokens) => void
   clearAuth: () => void
   isAuthenticated: () => boolean
 }
@@ -16,6 +17,7 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       tokens: null,
       setAuth: (user, tokens) => set({ user, tokens }),
+      setTokens: (tokens) => set((s) => ({ ...s, tokens })),
       clearAuth: () => set({ user: null, tokens: null }),
       isAuthenticated: () => !!get().tokens?.accessToken,
     }),

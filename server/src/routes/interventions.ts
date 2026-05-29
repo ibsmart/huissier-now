@@ -1,20 +1,25 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { PrismaClient } from '@prisma/client'
 import webPush from 'web-push'
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth'
 import { estimateETA } from '../services/eta'
 import { getIO } from '../socket'
+import prisma from '../lib/prisma'
 
 const router: import('express').Router = Router()
-const prisma = new PrismaClient()
 
 const CreateSchema = z.object({
-  type: z.enum(['constat', 'signification', 'saisie', 'autre']),
-  description: z.string().min(10).max(1000),
-  clientLat: z.number(),
-  clientLng: z.number(),
+  type:          z.enum(['constat', 'signification', 'saisie', 'autre']),
+  subType:       z.string().max(50).optional().nullable(),
+  description:   z.string().min(1).max(2000),
+  photos:        z.array(z.string()).max(5).optional().default([]),
+  audioBase64:   z.string().optional().nullable(),
+  clientLat:     z.number(),
+  clientLng:     z.number(),
   clientAddress: z.string().min(5),
+  urgency:       z.enum(['express', 'tomorrow', 'scheduled']).optional().default('express'),
+  scheduledAt:   z.string().datetime().optional().nullable(),
+  surcharge:     z.number().int().min(0).max(100).optional().default(0),
 })
 
 // ── Notifier le client via push + socket ────────────────────────────────────
@@ -50,28 +55,43 @@ async function notifyClient(clientId: string, interventionId: string, status: st
 
 // ── Créer une demande (client) ───────────────────────────────────────────────
 router.post('/', requireAuth, requireRole('client'), async (req: AuthRequest, res) => {
-  const parsed = CreateSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ message: 'Données invalides' })
+  try {
+    const parsed = CreateSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ message: 'Données invalides', details: parsed.error.flatten() })
 
-  const active = await prisma.intervention.findFirst({
-    where: { clientId: req.userId!, status: { in: ['pending', 'accepted', 'en_route', 'arrived'] } },
-  })
-  if (active) return res.status(409).json({ message: 'Vous avez déjà une intervention en cours', id: active.id })
-
-  const intervention = await prisma.intervention.create({
-    data: { ...parsed.data, clientId: req.userId! },
-  })
-
-  // Expiration automatique après 3 minutes
-  setTimeout(async () => {
-    const updated = await prisma.intervention.updateMany({
-      where: { id: intervention.id, status: 'pending' },
-      data:  { status: 'expired' },
+    const active = await prisma.intervention.findFirst({
+      where: { clientId: req.userId!, status: { in: ['pending', 'accepted', 'en_route', 'arrived'] } },
     })
-    if (updated.count > 0) notifyClient(req.userId!, intervention.id, 'expired')
-  }, 3 * 60 * 1000)
+    if (active) return res.status(409).json({ message: 'Vous avez déjà une intervention en cours', id: active.id })
 
-  return res.status(201).json(intervention)
+    const { subType, photos, audioBase64, scheduledAt, ...rest } = parsed.data
+    const intervention = await prisma.intervention.create({
+      data: {
+        ...rest,
+        clientId:    req.userId!,
+        subType:     subType     ?? null,
+        photos:      photos      ?? [],
+        audioBase64: audioBase64 ?? null,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      },
+    })
+
+    // Expiration automatique après 3 minutes — uniquement pour Express
+    if (parsed.data.urgency === 'express') {
+      setTimeout(async () => {
+        const updated = await prisma.intervention.updateMany({
+          where: { id: intervention.id, status: 'pending' },
+          data:  { status: 'expired' },
+        })
+        if (updated.count > 0) notifyClient(req.userId!, intervention.id, 'expired')
+      }, 3 * 60 * 1000)
+    }
+
+    return res.status(201).json(intervention)
+  } catch (err: any) {
+    console.error('POST /interventions error:', err)
+    return res.status(500).json({ message: err.message ?? 'Erreur serveur' })
+  }
 })
 
 // ── Mes interventions (client) ───────────────────────────────────────────────
@@ -94,34 +114,51 @@ router.get('/mine', requireAuth, requireRole('client'), async (req: AuthRequest,
 
 // ── Demandes proches (agent) ─────────────────────────────────────────────────
 router.get('/nearby', requireAuth, requireRole('agent'), async (req: AuthRequest, res) => {
-  const lat = parseFloat(req.query.lat as string)
-  const lng = parseFloat(req.query.lng as string)
-  if (isNaN(lat) || isNaN(lng)) return res.status(400).json({ message: 'Coordonnées invalides' })
+  try {
+    const lat = parseFloat(req.query.lat as string)
+    const lng = parseFloat(req.query.lng as string)
+    if (isNaN(lat) || isNaN(lng)) return res.status(400).json({ message: 'Coordonnées invalides' })
 
-  const agent = await prisma.huissierAgent.findUnique({ where: { id: req.userId! } })
-  if (!agent) return res.status(404).json({ message: 'Profil agent introuvable' })
+    const agent = await prisma.huissierAgent.findUnique({ where: { id: req.userId! } })
+    if (!agent) return res.status(200).json([])   // retourne tableau vide plutôt que 404
 
-  const radiusKm = agent.radiusKm ?? 20
+    const radiusKm = agent.radiusKm ?? 20
 
-  const interventions = await prisma.$queryRaw<any[]>`
-    SELECT i.*,
-      (6371 * acos(
-        cos(radians(${lat})) * cos(radians(i."clientLat")) *
-        cos(radians(i."clientLng") - radians(${lng})) +
-        sin(radians(${lat})) * sin(radians(i."clientLat"))
-      )) AS distance_km
-    FROM "Intervention" i
-    WHERE i.status = 'pending'
-      AND i."agentId" IS NULL
-      AND (6371 * acos(
-        cos(radians(${lat})) * cos(radians(i."clientLat")) *
-        cos(radians(i."clientLng") - radians(${lng})) +
-        sin(radians(${lat})) * sin(radians(i."clientLat"))
-      )) < ${radiusKm}
-    ORDER BY distance_km ASC
-    LIMIT 20
-  `
-  return res.json(interventions)
+    const interventions = await prisma.$queryRaw<any[]>`
+      SELECT i.id, i."clientId", i."agentId", i."firmId", i.type, i."subType",
+             i.description, i.status, i."clientLat", i."clientLng", i."clientAddress",
+             i."etaMinutes", i.urgency, i."scheduledAt", i.surcharge,
+             i."createdAt", i."acceptedAt", i."doneAt",
+             (6371 * acos(
+               cos(radians(${lat})) * cos(radians(i."clientLat")) *
+               cos(radians(i."clientLng") - radians(${lng})) +
+               sin(radians(${lat})) * sin(radians(i."clientLat"))
+             )) AS distance_km
+      FROM "Intervention" i
+      WHERE i.status = 'pending'
+        AND i."agentId" IS NULL
+        AND (6371 * acos(
+          cos(radians(${lat})) * cos(radians(i."clientLat")) *
+          cos(radians(i."clientLng") - radians(${lng})) +
+          sin(radians(${lat})) * sin(radians(i."clientLat"))
+        )) < ${radiusKm}
+      ORDER BY distance_km ASC
+      LIMIT 20
+    `
+
+    // Convertir les éventuels BigInt en Number pour JSON
+    const safe = interventions.map(row => ({
+      ...row,
+      distance_km: typeof row.distance_km === 'bigint' ? Number(row.distance_km) : row.distance_km,
+      surcharge:   typeof row.surcharge   === 'bigint' ? Number(row.surcharge)   : row.surcharge,
+      etaMinutes:  typeof row.etaMinutes  === 'bigint' ? Number(row.etaMinutes)  : row.etaMinutes,
+    }))
+
+    return res.json(safe)
+  } catch (err: any) {
+    console.error('GET /nearby error:', err)
+    return res.status(200).json([])  // retourne tableau vide en cas d'erreur
+  }
 })
 
 // ── Détail d'une intervention ────────────────────────────────────────────────
