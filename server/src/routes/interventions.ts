@@ -50,28 +50,33 @@ async function notifyClient(clientId: string, interventionId: string, status: st
 
 // ── Créer une demande (client) ───────────────────────────────────────────────
 router.post('/', requireAuth, requireRole('client'), async (req: AuthRequest, res) => {
-  const parsed = CreateSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ message: 'Données invalides' })
+  try {
+    const parsed = CreateSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ message: 'Données invalides', details: parsed.error.flatten() })
 
-  const active = await prisma.intervention.findFirst({
-    where: { clientId: req.userId!, status: { in: ['pending', 'accepted', 'en_route', 'arrived'] } },
-  })
-  if (active) return res.status(409).json({ message: 'Vous avez déjà une intervention en cours', id: active.id })
-
-  const intervention = await prisma.intervention.create({
-    data: { ...parsed.data, clientId: req.userId! },
-  })
-
-  // Expiration automatique après 3 minutes
-  setTimeout(async () => {
-    const updated = await prisma.intervention.updateMany({
-      where: { id: intervention.id, status: 'pending' },
-      data:  { status: 'expired' },
+    const active = await prisma.intervention.findFirst({
+      where: { clientId: req.userId!, status: { in: ['pending', 'accepted', 'en_route', 'arrived'] } },
     })
-    if (updated.count > 0) notifyClient(req.userId!, intervention.id, 'expired')
-  }, 3 * 60 * 1000)
+    if (active) return res.status(409).json({ message: 'Vous avez déjà une intervention en cours', id: active.id })
 
-  return res.status(201).json(intervention)
+    const intervention = await prisma.intervention.create({
+      data: { ...parsed.data, clientId: req.userId! },
+    })
+
+    // Expiration automatique après 3 minutes
+    setTimeout(async () => {
+      const updated = await prisma.intervention.updateMany({
+        where: { id: intervention.id, status: 'pending' },
+        data:  { status: 'expired' },
+      })
+      if (updated.count > 0) notifyClient(req.userId!, intervention.id, 'expired')
+    }, 3 * 60 * 1000)
+
+    return res.status(201).json(intervention)
+  } catch (err: any) {
+    console.error('POST /interventions error:', err)
+    return res.status(500).json({ message: err.message ?? 'Erreur serveur' })
+  }
 })
 
 // ── Mes interventions (client) ───────────────────────────────────────────────
