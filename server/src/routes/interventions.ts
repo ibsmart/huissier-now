@@ -115,34 +115,51 @@ router.get('/mine', requireAuth, requireRole('client'), async (req: AuthRequest,
 
 // ── Demandes proches (agent) ─────────────────────────────────────────────────
 router.get('/nearby', requireAuth, requireRole('agent'), async (req: AuthRequest, res) => {
-  const lat = parseFloat(req.query.lat as string)
-  const lng = parseFloat(req.query.lng as string)
-  if (isNaN(lat) || isNaN(lng)) return res.status(400).json({ message: 'Coordonnées invalides' })
+  try {
+    const lat = parseFloat(req.query.lat as string)
+    const lng = parseFloat(req.query.lng as string)
+    if (isNaN(lat) || isNaN(lng)) return res.status(400).json({ message: 'Coordonnées invalides' })
 
-  const agent = await prisma.huissierAgent.findUnique({ where: { id: req.userId! } })
-  if (!agent) return res.status(404).json({ message: 'Profil agent introuvable' })
+    const agent = await prisma.huissierAgent.findUnique({ where: { id: req.userId! } })
+    if (!agent) return res.status(200).json([])   // retourne tableau vide plutôt que 404
 
-  const radiusKm = agent.radiusKm ?? 20
+    const radiusKm = agent.radiusKm ?? 20
 
-  const interventions = await prisma.$queryRaw<any[]>`
-    SELECT i.*,
-      (6371 * acos(
-        cos(radians(${lat})) * cos(radians(i."clientLat")) *
-        cos(radians(i."clientLng") - radians(${lng})) +
-        sin(radians(${lat})) * sin(radians(i."clientLat"))
-      )) AS distance_km
-    FROM "Intervention" i
-    WHERE i.status = 'pending'
-      AND i."agentId" IS NULL
-      AND (6371 * acos(
-        cos(radians(${lat})) * cos(radians(i."clientLat")) *
-        cos(radians(i."clientLng") - radians(${lng})) +
-        sin(radians(${lat})) * sin(radians(i."clientLat"))
-      )) < ${radiusKm}
-    ORDER BY distance_km ASC
-    LIMIT 20
-  `
-  return res.json(interventions)
+    const interventions = await prisma.$queryRaw<any[]>`
+      SELECT i.id, i."clientId", i."agentId", i."firmId", i.type, i."subType",
+             i.description, i.status, i."clientLat", i."clientLng", i."clientAddress",
+             i."etaMinutes", i.urgency, i."scheduledAt", i.surcharge,
+             i."createdAt", i."acceptedAt", i."doneAt",
+             (6371 * acos(
+               cos(radians(${lat})) * cos(radians(i."clientLat")) *
+               cos(radians(i."clientLng") - radians(${lng})) +
+               sin(radians(${lat})) * sin(radians(i."clientLat"))
+             )) AS distance_km
+      FROM "Intervention" i
+      WHERE i.status = 'pending'
+        AND i."agentId" IS NULL
+        AND (6371 * acos(
+          cos(radians(${lat})) * cos(radians(i."clientLat")) *
+          cos(radians(i."clientLng") - radians(${lng})) +
+          sin(radians(${lat})) * sin(radians(i."clientLat"))
+        )) < ${radiusKm}
+      ORDER BY distance_km ASC
+      LIMIT 20
+    `
+
+    // Convertir les éventuels BigInt en Number pour JSON
+    const safe = interventions.map(row => ({
+      ...row,
+      distance_km: typeof row.distance_km === 'bigint' ? Number(row.distance_km) : row.distance_km,
+      surcharge:   typeof row.surcharge   === 'bigint' ? Number(row.surcharge)   : row.surcharge,
+      etaMinutes:  typeof row.etaMinutes  === 'bigint' ? Number(row.etaMinutes)  : row.etaMinutes,
+    }))
+
+    return res.json(safe)
+  } catch (err: any) {
+    console.error('GET /nearby error:', err)
+    return res.status(200).json([])  // retourne tableau vide en cas d'erreur
+  }
 })
 
 // ── Détail d'une intervention ────────────────────────────────────────────────

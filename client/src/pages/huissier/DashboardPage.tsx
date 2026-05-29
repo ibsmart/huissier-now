@@ -62,7 +62,9 @@ export default function DashboardPage() {
       const res = await fetch(`/api/interventions/nearby?lat=${coords.lat}&lng=${coords.lng}`, {
         headers: { Authorization: `Bearer ${tokens?.accessToken}` },
       })
-      setInterventions(await res.json())
+      if (!res.ok) return
+      const data = await res.json()
+      if (Array.isArray(data)) setInterventions(data)
     } catch {}
   }
 
@@ -71,7 +73,9 @@ export default function DashboardPage() {
       const res = await fetch('/api/huissiers/firm/interventions', {
         headers: { Authorization: `Bearer ${tokens?.accessToken}` },
       })
-      setInterventions(await res.json())
+      if (!res.ok) return
+      const data = await res.json()
+      if (Array.isArray(data)) setInterventions(data)
     } catch {}
   }
 
@@ -174,7 +178,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {interventions.map((item) => (
+        {(Array.isArray(interventions) ? interventions : []).map((item) => (
           <button
             key={item.id}
             className="card w-full text-left space-y-2 active:bg-gray-50"
