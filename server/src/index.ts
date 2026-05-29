@@ -14,6 +14,10 @@ import { initServer } from './socket'
 dotenv.config()
 
 const app = express()
+// Faire confiance au proxy Vercel/Nginx pour récupérer la vraie IP client
+// dans X-Forwarded-For (sinon tous les utilisateurs partagent l'IP du proxy)
+app.set('trust proxy', 1)
+
 const PORT = process.env.PORT ?? 3000
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -43,8 +47,32 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
-app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { message: 'Trop de tentatives, réessayez dans 15 minutes' } }))
-app.use('/api/interventions', rateLimit({ windowMs: 60 * 1000, max: 60 }))
+// Auth : 30 tentatives / 15 min par IP réelle
+app.use('/api/auth', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { message: 'Trop de tentatives, réessayez dans 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+}))
+// Lecture interventions : 120 req/min (polling, dashboard, tracking…)
+app.use('/api/interventions', rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: { message: 'Trop de requêtes, réessayez dans une minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === 'POST', // les écritures ont leur propre limiter ci-dessous
+}))
+// Création / actions interventions (POST) : 15/min par IP — protège le double-envoi
+app.use('/api/interventions', rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: { message: 'Trop de soumissions, réessayez dans une minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method !== 'POST',
+}))
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes)

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDraftStore } from '../../store/draftStore'
 import { useAuthStore } from '../../store/authStore'
 import { apiFetch, ApiError } from '../../api/client'
 import { useT } from '../../i18n'
 import LangToggle from '../../components/LangToggle'
+import type { Intervention } from '../../types'
 
 const TYPE_LABELS: Record<string, string> = {
   constat: 'Constat', signification: 'Signification', saisie: 'Saisie', autre: 'Autre',
@@ -36,9 +37,29 @@ export default function ConfirmPage() {
   const [error, setError] = useState('')
   const [existingId, setExistingId] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  // Guard synchrone anti-double-clic (setLoading est async, pas suffisant seul)
+  const submittingRef = useRef(false)
+
+  // Vérification proactive au chargement : demande déjà active ?
+  useEffect(() => {
+    apiFetch('/api/interventions/mine', {
+      headers: { Authorization: `Bearer ${tokens?.accessToken}` },
+    })
+      .then((data: Intervention[]) => {
+        if (!Array.isArray(data)) return
+        const active = data.find((i) =>
+          ['pending', 'accepted', 'en_route', 'arrived'].includes(i.status),
+        )
+        if (active) setExistingId(active.id)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit() {
     if (!draft.type || !draft.description || !draft.address) return
+    // Guard synchrone : bloque un double-clic avant que React re-render
+    if (submittingRef.current) return
+    submittingRef.current = true
     setLoading(true)
     setError('')
     try {
@@ -71,6 +92,7 @@ export default function ConfirmPage() {
         setError(e instanceof Error ? e.message : "Erreur lors de l'envoi")
       }
     } finally {
+      submittingRef.current = false
       setLoading(false)
     }
   }
