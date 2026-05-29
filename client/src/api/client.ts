@@ -1,5 +1,17 @@
 import { useAuthStore } from '../store/authStore'
 
+// Erreur HTTP enrichie : conserve status + corps de la réponse
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly data: any = null,
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
 // Évite les appels de refresh simultanés (un seul à la fois)
 let refreshPromise: Promise<string> | null = null
 
@@ -29,15 +41,15 @@ async function refreshAccessToken(): Promise<string> {
 
 function parseResponse(text: string, status: number): any {
   if (!text) {
-    if (status >= 400) throw new Error(`Erreur serveur (${status})`)
+    if (status >= 400) throw new ApiError(`Erreur serveur (${status})`, status)
     return null
   }
   let data: any
   try { data = JSON.parse(text) } catch {
-    if (status >= 400) throw new Error(`Erreur serveur (${status})`)
-    throw new Error('Réponse invalide du serveur')
+    if (status >= 400) throw new ApiError(`Erreur serveur (${status})`, status)
+    throw new ApiError('Réponse invalide du serveur', status)
   }
-  if (status >= 400) throw new Error(data.message ?? `Erreur serveur (${status})`)
+  if (status >= 400) throw new ApiError(data.message ?? `Erreur serveur (${status})`, status, data)
   return data
 }
 

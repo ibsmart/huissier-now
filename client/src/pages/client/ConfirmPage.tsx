@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDraftStore } from '../../store/draftStore'
 import { useAuthStore } from '../../store/authStore'
-import { apiFetch } from '../../api/client'
+import { apiFetch, ApiError } from '../../api/client'
 import { useT } from '../../i18n'
 import LangToggle from '../../components/LangToggle'
 
@@ -34,6 +34,8 @@ export default function ConfirmPage() {
   const t = useT()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [existingId, setExistingId] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState(false)
 
   async function handleSubmit() {
     if (!draft.type || !draft.description || !draft.address) return
@@ -63,9 +65,31 @@ export default function ConfirmPage() {
       reset()
       navigate(`/request/searching?id=${res.id}`)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erreur lors de l'envoi")
+      if (e instanceof ApiError && e.status === 409 && e.data?.id) {
+        setExistingId(e.data.id)
+      } else {
+        setError(e instanceof Error ? e.message : "Erreur lors de l'envoi")
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleCancelAndRetry() {
+    if (!existingId) return
+    setCancelling(true)
+    try {
+      await apiFetch(`/api/interventions/${existingId}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokens?.accessToken}` },
+      })
+      setExistingId(null)
+      setError('')
+      await handleSubmit()
+    } catch {
+      setError("Impossible d'annuler la demande précédente.")
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -184,6 +208,36 @@ export default function ConfirmPage() {
             </div>
           </div>
         </div>
+
+        {/* Demande déjà en cours (409) */}
+        {existingId && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="font-semibold text-amber-800 text-sm">Vous avez déjà une demande en cours</p>
+                <p className="text-amber-600 text-xs mt-0.5">
+                  Vous devez d'abord gérer votre demande active avant d'en créer une nouvelle.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 py-3 bg-primary-600 text-white rounded-xl text-sm font-semibold active:opacity-80"
+                onClick={() => navigate(`/request/searching?id=${existingId}`)}
+              >
+                Voir ma demande
+              </button>
+              <button
+                className="flex-1 py-3 border border-red-300 text-red-600 rounded-xl text-sm font-semibold active:opacity-80 disabled:opacity-50"
+                disabled={cancelling}
+                onClick={handleCancelAndRetry}
+              >
+                {cancelling ? 'Annulation…' : 'Annuler et recréer'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4">

@@ -58,8 +58,9 @@ export default function TrackingPage() {
       if (!res.ok) { setError(true); return }
       const data: Intervention = await res.json()
       setIntervention(data)
-      if (data.status === 'done') navigate(`/payment/${id}`)
-      if (data.status === 'expired' || data.status === 'cancelled') navigate('/')
+      if (data.status === 'pending')                                    navigate(`/request/searching?id=${id}`)
+      if (data.status === 'done')                                       navigate(`/payment/${id}`)
+      if (data.status === 'expired' || data.status === 'cancelled')     navigate('/')
     } catch { setError(true) }
   }, 30000)
 

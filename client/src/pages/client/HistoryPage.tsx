@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { apiFetch } from '../../api/client'
 import type { Intervention } from '../../types'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -8,13 +9,13 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending:   { label: 'En attente', color: 'bg-yellow-100 text-yellow-700',   icon: '⏳' },
-  accepted:  { label: 'Acceptée',   color: 'bg-primary-100 text-primary-700', icon: '✅' },
-  en_route:  { label: 'En route',   color: 'bg-primary-100 text-primary-700', icon: '🚗' },
-  arrived:   { label: 'Arrivé',     color: 'bg-primary-100 text-primary-700', icon: '📍' },
-  done:      { label: 'Terminée',   color: 'bg-green-100 text-green-700',     icon: '✔️' },
-  expired:   { label: 'Expirée',    color: 'bg-gray-100 text-gray-500',       icon: '⏰' },
-  cancelled: { label: 'Annulée',    color: 'bg-red-100 text-red-500',         icon: '✕'  },
+  pending:   { label: 'En attente',  color: 'bg-amber-100 text-amber-700',    icon: '⏳' },
+  accepted:  { label: 'Acceptée',    color: 'bg-blue-100 text-blue-700',      icon: '✅' },
+  en_route:  { label: 'En route',    color: 'bg-blue-100 text-blue-700',      icon: '🚗' },
+  arrived:   { label: 'Arrivé',      color: 'bg-blue-100 text-blue-700',      icon: '📍' },
+  done:      { label: 'Terminée',    color: 'bg-green-100 text-green-700',    icon: '✔️' },
+  expired:   { label: 'Expirée',     color: 'bg-gray-100 text-gray-500',      icon: '⏰' },
+  cancelled: { label: 'Annulée',     color: 'bg-red-100 text-red-500',        icon: '✕'  },
 }
 
 function formatDate(iso: string) {
@@ -29,19 +30,38 @@ export default function HistoryPage() {
   const { tokens } = useAuthStore()
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [loading, setLoading] = useState(true)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/interventions/mine', {
+    apiFetch('/api/interventions/mine', {
       headers: { Authorization: `Bearer ${tokens?.accessToken}` },
     })
-      .then((r) => r.json())
       .then((data) => setInterventions(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
-  const active   = interventions.filter((i) => ['pending','accepted','en_route','arrived'].includes(i.status))
-  const finished = interventions.filter((i) => !['pending','accepted','en_route','arrived'].includes(i.status))
+  async function handleCancel(id: string) {
+    if (!window.confirm('Annuler cette demande en attente ?')) return
+    setCancellingId(id)
+    try {
+      await apiFetch(`/api/interventions/${id}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokens?.accessToken}` },
+      })
+      setInterventions((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, status: 'cancelled' } : i)),
+      )
+    } catch (e: any) {
+      alert(e.message ?? 'Impossible d\'annuler')
+    } finally {
+      setCancellingId(null)
+    }
+  }
+
+  const pending  = interventions.filter((i) => i.status === 'pending')
+  const active   = interventions.filter((i) => ['accepted', 'en_route', 'arrived'].includes(i.status))
+  const finished = interventions.filter((i) => ['done', 'expired', 'cancelled'].includes(i.status))
 
   return (
     <div className="screen bg-gray-50">
@@ -71,11 +91,52 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* En cours */}
+        {/* ── Demandes en attente d'un agent ── */}
+        {pending.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-3 px-1">
+              ⏳ En attente d'un agent
+            </p>
+            <div className="space-y-3">
+              {pending.map((item) => (
+                <div key={item.id} className="card border border-amber-200 bg-amber-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">{TYPE_LABELS[item.type] ?? item.type}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                        ⏳ En attente
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-1">📅 {formatDate(item.createdAt)}</p>
+                  <p className="text-sm text-gray-500 truncate mb-3">📍 {item.clientAddress}</p>
+
+                  <div className="flex gap-2">
+                    <button
+                      className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold active:opacity-80"
+                      onClick={() => navigate(`/request/searching?id=${item.id}`)}
+                    >
+                      Voir le statut
+                    </button>
+                    <button
+                      className="flex-1 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-semibold active:opacity-80 disabled:opacity-40"
+                      disabled={cancellingId === item.id}
+                      onClick={() => handleCancel(item.id)}
+                    >
+                      {cancellingId === item.id ? 'Annulation…' : '✕ Annuler'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Mission en cours ── */}
         {active.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 px-1">
-              En cours
+            <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-3 px-1">
+              🚗 Mission en cours
             </p>
             <div className="space-y-3">
               {active.map((item) => (
@@ -85,7 +146,7 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* Historique */}
+        {/* ── Historique ── */}
         {finished.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 px-1">
