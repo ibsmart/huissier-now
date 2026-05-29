@@ -51,8 +51,10 @@ export interface Intervention {
   firmId?: string
   firm?: HuissierFirm
   type: InterventionType
+  subType?: string
   description: string
-  photoUrl?: string
+  photos?: string[]
+  audioBase64?: string
   status: InterventionStatus
   clientLat: number
   clientLng: number
@@ -66,8 +68,10 @@ export interface Intervention {
 
 export interface InterventionDraft {
   type?: InterventionType
+  subType?: string
   description?: string
-  photoUrl?: string
+  photos?: string[]       // base64 data URLs
+  audioBase64?: string    // base64 audio
   lat?: number
   lng?: number
   address?: string

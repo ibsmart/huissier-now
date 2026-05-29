@@ -10,10 +10,13 @@ const router: import('express').Router = Router()
 const prisma = new PrismaClient()
 
 const CreateSchema = z.object({
-  type: z.enum(['constat', 'signification', 'saisie', 'autre']),
-  description: z.string().min(10).max(1000),
-  clientLat: z.number(),
-  clientLng: z.number(),
+  type:          z.enum(['constat', 'signification', 'saisie', 'autre']),
+  subType:       z.string().max(50).optional().nullable(),
+  description:   z.string().min(1).max(2000),
+  photos:        z.array(z.string()).max(5).optional().default([]),
+  audioBase64:   z.string().optional().nullable(),
+  clientLat:     z.number(),
+  clientLng:     z.number(),
   clientAddress: z.string().min(5),
 })
 
@@ -59,8 +62,15 @@ router.post('/', requireAuth, requireRole('client'), async (req: AuthRequest, re
     })
     if (active) return res.status(409).json({ message: 'Vous avez déjà une intervention en cours', id: active.id })
 
+    const { subType, photos, audioBase64, ...rest } = parsed.data
     const intervention = await prisma.intervention.create({
-      data: { ...parsed.data, clientId: req.userId! },
+      data: {
+        ...rest,
+        clientId:    req.userId!,
+        subType:     subType    ?? null,
+        photos:      photos     ?? [],
+        audioBase64: audioBase64 ?? null,
+      },
     })
 
     // Expiration automatique après 3 minutes

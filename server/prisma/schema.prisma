@@ -102,8 +102,10 @@ model Intervention {
 
   // Contenu
   type          InterventionType
+  subType       String?
   description   String
-  photoUrl      String?
+  photos        String[]
+  audioBase64   String?
 
   // Statut
   status        InterventionStatus @default(pending)
