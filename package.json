@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
-    "build": "npm run build -w client && npm run build -w server",
+    "build": "npm run build -w server",
     "start": "node server/dist/index.js",
     "postinstall": "cd server && npx prisma generate"
   },
