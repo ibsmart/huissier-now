@@ -47,31 +47,20 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
-// Auth : 30 tentatives / 15 min par IP réelle
+// Uniquement sur les endpoints non-authentifiés (login, register, refresh).
+// Les routes /interventions et /huissiers sont protégées par JWT — le
+// rate-limiting par IP y est contre-productif derrière un proxy multi-couche
+// (Vercel → Hostinger nginx → Node.js : tous les clients partageraient la
+// même IP interne). La protection contre le spam y est assurée par :
+//   • JWT obligatoire (401 si absent/expiré)
+//   • Contrainte DB 409 (1 seule intervention active par client)
+//   • Guard useRef anti-double-clic côté client
 app.use('/api/auth', rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 50,           // 50 tentatives / 15 min — couvre login + refresh naturels
   message: { message: 'Trop de tentatives, réessayez dans 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
-}))
-// Lecture interventions : 120 req/min (polling, dashboard, tracking…)
-app.use('/api/interventions', rateLimit({
-  windowMs: 60 * 1000,
-  max: 120,
-  message: { message: 'Trop de requêtes, réessayez dans une minute' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === 'POST', // les écritures ont leur propre limiter ci-dessous
-}))
-// Création / actions interventions (POST) : 15/min par IP — protège le double-envoi
-app.use('/api/interventions', rateLimit({
-  windowMs: 60 * 1000,
-  max: 15,
-  message: { message: 'Trop de soumissions, réessayez dans une minute' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method !== 'POST',
 }))
 
 // ── Routes ───────────────────────────────────────────────────────────────────
